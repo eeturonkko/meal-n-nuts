@@ -1,12 +1,7 @@
 import { useClerk } from "@clerk/clerk-expo";
 import * as Linking from "expo-linking";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
-
-const COLORS = {
-  primary: "#16a34a",
-  primaryDark: "#15803d",
-  white: "#ffffff",
-};
+import COLORS from "../utils/constants";
 
 export const SignOutButton = () => {
   const { signOut } = useClerk();
