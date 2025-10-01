@@ -15,13 +15,20 @@
       header {
         background: #16a34a;
         color: white;
-        padding: 1rem 2rem;
+        padding: 1.5rem 2rem;
         border-radius: 12px;
         margin-bottom: 2rem;
+        text-align: center;
+      }
+      header img {
+        max-width: 180px;
+        display: block;
+        margin: 0 auto 1rem auto;
+        border-radius: 60%;
       }
       h1 {
         margin: 0;
-        font-size: 1.8rem;
+        font-size: 2rem;
       }
       .card {
         background: white;
@@ -39,6 +46,7 @@
         margin-top: 2rem;
         font-size: 0.9rem;
         color: #555;
+        text-align: center;
       }
     </style>
   </head>
@@ -46,7 +54,7 @@
     <header>
       <h1>🥗 Meal’n’Nuts API</h1>
       <p>Backend for nutrition tracking & recipe scanning app.</p>
-      <p>Made by Eetu, Bror and Julius</p>
+      <img src="/meal-logo.png" alt="Meal’n’Nuts Logo" />
     </header>
 
     <div class="card">
@@ -56,17 +64,6 @@
         It provides SQLite storage for meals, recipes, favorites, and barcode
         lookups.
       </p>
-    </div>
-
-    <div class="card">
-      <h2>Quick links</h2>
-      <ul>
-        <li><a href="/health">/health</a> — check server + DB status</li>
-        <li>
-          <a href="/meals?userId=demo">/meals?userId=demo</a> — example meals
-          endpoint
-        </li>
-      </ul>
     </div>
 
     <div class="card">
