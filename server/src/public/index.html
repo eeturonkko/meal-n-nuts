@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Meal’n’Nuts API</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #f6fff9;
+        color: #0c1a10;
+        margin: 0;
+        padding: 2rem;
+        line-height: 1.5;
+      }
+      header {
+        background: #16a34a;
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.8rem;
+      }
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1rem;
+      }
+      code {
+        background: #e6f5eb;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      footer {
+        margin-top: 2rem;
+        font-size: 0.9rem;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🥗 Meal’n’Nuts API</h1>
+      <p>Backend for nutrition tracking & recipe scanning app.</p>
+      <p>Made by Eetu, Bror and Julius</p>
+    </header>
+
+    <div class="card">
+      <h2>About</h2>
+      <p>
+        This backend powers the <strong>Meal’n’Nuts</strong> React Native app.
+        It provides SQLite storage for meals, recipes, favorites, and barcode
+        lookups.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Quick links</h2>
+      <ul>
+        <li><a href="/health">/health</a> — check server + DB status</li>
+        <li>
+          <a href="/meals?userId=demo">/meals?userId=demo</a> — example meals
+          endpoint
+        </li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Tech stack</h2>
+      <ul>
+        <li>Express + TypeScript</li>
+        <li>SQLite (better-sqlite3)</li>
+        <li>Clerk for auth (userId passed from client)</li>
+      </ul>
+    </div>
+
+    <footer>&copy; 2025 Meal’n’Nuts Project</footer>
+  </body>
+</html>
