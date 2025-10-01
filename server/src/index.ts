@@ -9,6 +9,10 @@ const PORT = Number(process.env.PORT || 4000);
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
+
+app.get("/", (_req, res) => {
+  res.json({ message: "Hello from Eetu, Bror and Julius!" });
+});
 app.get("/health", (_req, res) => {
   try {
     res.json({ status: "ok" });
