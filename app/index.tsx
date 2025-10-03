@@ -1,13 +1,20 @@
 import { SignOutButton } from "@/app/components/SignOutButton";
 import { SignedIn, SignedOut, useUser } from "@clerk/clerk-expo";
-import { Link } from "expo-router";
-import React from "react";
+import { Link, useRouter } from "expo-router";
+import React, { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import COLORS from "./utils/constants";
 
 export default function Page() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      router.replace("/(tabs)/home");
+    }
+  }, [isLoaded, user, router]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -58,15 +65,8 @@ export default function Page() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: "center",
-  },
+  safe: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, paddingHorizontal: 20, justifyContent: "center" },
   card: {
     backgroundColor: COLORS.primary,
     borderRadius: 24,
@@ -86,9 +86,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 16,
   },
-  section: {
-    gap: 14,
-  },
+  section: { gap: 14 },
   subtitle: {
     textAlign: "center",
     color: COLORS.outline,
@@ -101,11 +99,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
   },
-  primaryBtnText: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  primaryBtnText: { color: COLORS.primary, fontSize: 16, fontWeight: "700" },
   secondaryBtn: {
     backgroundColor: "transparent",
     borderRadius: 14,
@@ -114,24 +108,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.outline,
   },
-  secondaryBtnText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  divider: {
-    height: 10,
-  },
-  welcome: {
-    textAlign: "center",
-    color: COLORS.white,
-    fontSize: 18,
-  },
-  welcomeStrong: {
-    fontWeight: "800",
-  },
-  actionsRow: {
-    marginTop: 8,
-    alignItems: "center",
-  },
+  secondaryBtnText: { color: COLORS.white, fontSize: 16, fontWeight: "700" },
+  divider: { height: 10 },
+  welcome: { textAlign: "center", color: COLORS.white, fontSize: 18 },
+  welcomeStrong: { fontWeight: "800" },
+  actionsRow: { marginTop: 8, alignItems: "center" },
 });
