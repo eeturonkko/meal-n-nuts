@@ -3,6 +3,7 @@ import { Link, useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -12,7 +13,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import logo from "../../assets/images/MnN-hahmo-curved-noBGwhite.png";
 import COLORS from "../utils/constants";
+
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -62,7 +65,7 @@ export default function SignInScreen() {
         behavior={Platform.select({ ios: "padding", android: undefined })}
       >
         <View style={styles.card}>
-          <Text style={styles.logo}>Meal’n’Nuts</Text>
+          <Image source={logo} style={styles.logoImage} resizeMode="contain" />
           <Text style={styles.title}>Sign in</Text>
           <Text style={styles.subtitle}>Use your email and password</Text>
 
@@ -200,4 +203,11 @@ const styles = StyleSheet.create({
   },
   footerText: { color: COLORS.outline },
   link: { color: COLORS.white, fontWeight: "800" },
+
+  logoImage: {
+  width: 160,     
+  height: 160,
+  alignSelf: "center",
+  marginBottom: 6,
+  },
 });
