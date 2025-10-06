@@ -5,7 +5,7 @@ import {
   useCameraPermissions,
 } from "expo-camera";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -16,23 +16,58 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import COLORS from "../utils/constants";
 
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
+
+const toGTIN13 = (raw: string) => {
+  const digits = (raw || "").replace(/\D/g, "");
+  return digits.length > 13 ? digits.slice(-13) : digits.padStart(13, "0");
+};
+
 export default function ScanScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
-  const [scanned, setScanned] = useState(false);
+  const [scanActive, setScanActive] = useState(true);
+  const lockRef = useRef(false);
+  const lastCodeRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (permission && !permission.granted) requestPermission();
   }, [permission, requestPermission]);
 
+  const close = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/home");
+  }, [router]);
+
   const onBarCodeScanned = useCallback(
-    (res: BarcodeScanningResult) => {
-      if (scanned) return;
-      setScanned(true);
-      console.log("BARCODE:", res.data, "type:", res.type);
-      router.replace({ pathname: "/home" });
+    async (res: BarcodeScanningResult) => {
+      if (lockRef.current) return;
+      const gtin13 = toGTIN13(res.data);
+      if (lastCodeRef.current === gtin13) return;
+
+      lockRef.current = true;
+      lastCodeRef.current = gtin13;
+      setScanActive(false);
+
+      try {
+        console.log(
+          "[Scan] raw:",
+          res.data,
+          "type:",
+          res.type,
+          "→ gtin13:",
+          gtin13
+        );
+        const resp = await fetch(`${API_URL}/api/food/${gtin13}`);
+        const json = await resp.json();
+        console.log("[Scan] server response:", json);
+      } catch (e) {
+        console.log("[Scan] fetch error:", e);
+      } finally {
+        close();
+      }
     },
-    [scanned, router]
+    [close]
   );
 
   if (!permission) {
@@ -43,6 +78,7 @@ export default function ScanScreen() {
       </SafeAreaView>
     );
   }
+
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -53,7 +89,7 @@ export default function ScanScreen() {
           <Text style={styles.permText}>Allow Camera</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={close}
           style={[styles.permBtn, styles.cancelBtn]}
         >
           <Text style={styles.cancelText}>Cancel</Text>
@@ -65,11 +101,7 @@ export default function ScanScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={12}
-        >
+        <TouchableOpacity onPress={close} style={styles.backBtn} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>Scan barcode</Text>
@@ -77,24 +109,26 @@ export default function ScanScreen() {
       </View>
 
       <View style={styles.cameraWrap}>
-        <CameraView
-          style={StyleSheet.absoluteFill}
-          facing="back"
-          barcodeScannerSettings={{
-            barcodeTypes: [
-              "qr",
-              "ean13",
-              "ean8",
-              "upc_a",
-              "upc_e",
-              "code128",
-              "code39",
-              "code93",
-              "pdf417",
-            ],
-          }}
-          onBarcodeScanned={onBarCodeScanned}
-        />
+        {scanActive && (
+          <CameraView
+            style={StyleSheet.absoluteFill}
+            facing="back"
+            barcodeScannerSettings={{
+              barcodeTypes: [
+                "qr",
+                "ean13",
+                "ean8",
+                "upc_a",
+                "upc_e",
+                "code128",
+                "code39",
+                "code93",
+                "pdf417",
+              ],
+            }}
+            onBarcodeScanned={onBarCodeScanned}
+          />
+        )}
         <View style={styles.frame} pointerEvents="none" />
       </View>
 

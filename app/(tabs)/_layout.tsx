@@ -5,7 +5,7 @@ import TabBar from "../components/TabBar";
 import TopSearchBar from "../components/TopSearchBar";
 
 export default function TabsLayout() {
-  const [query, setQuery] = React.useState("");
+  /*  const [query, setQuery] = React.useState(""); */
 
   return (
     <SafeAreaProvider>
