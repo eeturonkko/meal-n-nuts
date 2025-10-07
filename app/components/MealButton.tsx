@@ -16,10 +16,10 @@ export default function MealButton({ label, onPress }: MealButtonProps) {
 
 const styles = StyleSheet.create({
   mealCard: {
-    flexBasis: "31%",   // ✅ kolme nappia per rivi
+    flexBasis: "31%",  
     maxWidth: "31%",
     height: 92,
-    marginBottom: 12,   // ✅ rivien väli
+    marginBottom: 12,   
     borderRadius: 18,
     backgroundColor: "#fff",
     alignItems: "center",
