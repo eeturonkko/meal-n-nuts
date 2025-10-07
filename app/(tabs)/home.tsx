@@ -1,9 +1,18 @@
-import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import MealButton from "../components/MealButton";
 import COLORS from "../utils/constants";
 
 export default function HomeScreen() {
+
+  const openMeal = (meal: string) => {
+    console.log(`Open meal screen: ${meal}`);
+  };
+
+  const openWaterModal = () => {
+    console.log("Open water modal");
+  };
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.safe}>
       <View style={styles.container}>
@@ -14,11 +23,13 @@ export default function HomeScreen() {
           {/** ----------------------- */}
         </View>
 
-        <View style={[styles.section, styles.bottom]}>
-          {/** BRORIN RAKENTAMINEN */}
-          <Text style={styles.sectionTitle}>Bror</Text>
-          <Text style={styles.sectionBody}>(Ateriaosa – Bror rakentaa)</Text>
-          {/** ----------------------- */}
+        <View style={styles.mealsGrid}>
+          <MealButton label="Aamupala"   onPress={() => openMeal("breakfast")} />
+          <MealButton label="Lounas"     onPress={() => openMeal("lunch")} />
+          <MealButton label="Päivällinen" onPress={() => openMeal("dinner")} />
+          <MealButton label="Iltapala"   onPress={() => openMeal("evening")} />
+          <MealButton label="Snacks"     onPress={() => openMeal("snack")} />
+          <MealButton label="Vesi"       onPress={openWaterModal} />
         </View>
       </View>
     </SafeAreaView>
@@ -53,5 +64,11 @@ const styles = StyleSheet.create({
   },
   sectionBody: {
     color: "#334155",
+  },
+    mealsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    
   },
 });
