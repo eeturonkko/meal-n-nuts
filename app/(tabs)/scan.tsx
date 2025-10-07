@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import {
   BarcodeScanningResult,
   CameraView,
@@ -27,12 +28,26 @@ export default function ScanScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanActive, setScanActive] = useState(true);
+  const [cameraKey, setCameraKey] = useState(0);
+  const isFocused = useIsFocused();
   const lockRef = useRef(false);
   const lastCodeRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (permission && !permission.granted) requestPermission();
   }, [permission, requestPermission]);
+
+  useFocusEffect(
+    useCallback(() => {
+      lockRef.current = false;
+      lastCodeRef.current = null;
+      setScanActive(true);
+      setCameraKey((k) => k + 1);
+      return () => {
+        lockRef.current = false;
+      };
+    }, [])
+  );
 
   const close = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -43,13 +58,15 @@ export default function ScanScreen() {
     async (res: BarcodeScanningResult) => {
       if (lockRef.current) return;
       const gtin13 = toGTIN13(res.data);
-      if (lastCodeRef.current === gtin13) return;
+      if (!gtin13 || lastCodeRef.current === gtin13) return;
 
       lockRef.current = true;
       lastCodeRef.current = gtin13;
       setScanActive(false);
 
       try {
+        const resp = await fetch(`${API_URL}/api/food/${gtin13}`);
+        const json = await resp.json();
         console.log(
           "[Scan] raw:",
           res.data,
@@ -58,8 +75,6 @@ export default function ScanScreen() {
           "→ gtin13:",
           gtin13
         );
-        const resp = await fetch(`${API_URL}/api/food/${gtin13}`);
-        const json = await resp.json();
         console.log("[Scan] server response:", json);
       } catch (e) {
         console.log("[Scan] fetch error:", e);
@@ -109,8 +124,9 @@ export default function ScanScreen() {
       </View>
 
       <View style={styles.cameraWrap}>
-        {scanActive && (
+        {isFocused && scanActive && (
           <CameraView
+            key={cameraKey}
             style={StyleSheet.absoluteFill}
             facing="back"
             barcodeScannerSettings={{
