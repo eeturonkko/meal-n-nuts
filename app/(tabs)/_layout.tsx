@@ -5,20 +5,14 @@ import TabBar from "../components/TabBar";
 import TopSearchBar from "../components/TopSearchBar";
 
 export default function TabsLayout() {
-  const [query, setQuery] = React.useState("");
+  /*  const [query, setQuery] = React.useState(""); */
 
   return (
     <SafeAreaProvider>
       <Tabs
         tabBar={(props) => <TabBar {...props} />}
         screenOptions={{
-          header: () => (
-            <TopSearchBar
-              value={query}
-              onChangeText={setQuery}
-              onSearchPress={() => {}}
-            />
-          ),
+          header: () => <TopSearchBar />,
           tabBarHideOnKeyboard: true,
         }}
       >
@@ -26,6 +20,8 @@ export default function TabsLayout() {
         <Tabs.Screen name="diary" options={{ title: "Päiväkirja" }} />
         <Tabs.Screen name="recipes" options={{ title: "Reseptit" }} />
         <Tabs.Screen name="more" options={{ title: "Lisää" }} />
+
+        <Tabs.Screen name="scan" options={{ title: "Scan", href: null }} />
       </Tabs>
     </SafeAreaProvider>
   );

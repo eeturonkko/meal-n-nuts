@@ -1,9 +1,10 @@
 import { SignOutButton } from "@/app/components/SignOutButton";
 import { SignedIn, SignedOut, useUser } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import React, { useEffect } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import logo from "../assets/images/MnN-hahmo-curved-noBGwhite.png";
 import COLORS from "./utils/constants";
 
 export default function Page() {
@@ -20,7 +21,7 @@ export default function Page() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.card}>
-          <Text style={styles.logo}>Meal’n’Nuts</Text>
+          <Image source={logo} style={styles.logoImage} resizeMode="contain" />
 
           <SignedIn>
             <View style={styles.section}>
@@ -113,4 +114,11 @@ const styles = StyleSheet.create({
   welcome: { textAlign: "center", color: COLORS.white, fontSize: 18 },
   welcomeStrong: { fontWeight: "800" },
   actionsRow: { marginTop: 8, alignItems: "center" },
+
+  logoImage: {
+  width: 160,     
+  height: 160,
+  alignSelf: "center",
+  marginBottom: 6,
+  },
 });
