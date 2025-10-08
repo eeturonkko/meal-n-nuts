@@ -2,16 +2,45 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import COLORS from "../utils/constants";
+import { NutrientProgressCircle } from "../components/NutrientProgressCircle";
+
+const smallNutrients = [
+  { progress: 105, goal: 150, label: "Proteiini", size: 100, offset: -35 },
+  { progress: 250, goal: 320, label: "Hiilihydraatti", size: 100, offset: 0 },
+  { progress: 60, goal: 70, label: "Rasva", size: 100, offset: -35 },
+];
 
 export default function HomeScreen() {
   return (
     <SafeAreaView edges={["bottom"]} style={styles.safe}>
       <View style={styles.container}>
         {/** JULIUKSEN RAKENTAMINEN */}
-        <View style={[styles.section, styles.top]}>
-          <Text style={styles.sectionTitle}>Julius</Text>
-          <Text style={styles.sectionBody}>(Kaloriosa – Julius rakentaa)</Text>
-          {/** ----------------------- */}
+        <View style={[styles.section, styles.top, { alignItems: "center" }]}>
+          <NutrientProgressCircle
+            progressValue={2000}
+            goalValue={2500}
+            label="Kalorit"
+            size={120}
+          />
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-evenly",
+              marginBottom: 75,
+            }}
+          >
+            {smallNutrients.map(({ progress, goal, label, size, offset }) => (
+              <View key={label} style={{ marginTop: offset }}>
+                <NutrientProgressCircle
+                  progressValue={progress}
+                  goalValue={goal}
+                  label={label}
+                  size={size}
+                />
+              </View>
+            ))}
+          </View>
         </View>
 
         <View style={[styles.section, styles.bottom]}>
