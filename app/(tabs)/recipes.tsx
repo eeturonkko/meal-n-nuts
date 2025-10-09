@@ -71,37 +71,35 @@ export default function Recipes() {
     return { items: mapped, total: totalResults };
   };
 
-  const fetchPage = useCallback(
-    async (q: string, p: number) => {
-      setLoading(true);
-      try {
-        const qs = new URLSearchParams({
-          query: q,
-          page: String(p),
-          max_results: "20",
-        });
-        const resp = await fetch(
-          `${API_URL}/api/recipes/search?${qs.toString()}`,
-          {
-            headers: { Accept: "application/json" },
-          }
-        );
-        const json: ApiResponse = await resp.json();
-        if (!resp.ok) throw new Error("API error");
-        const { items: nextItems, total } = mapApiToItems(json);
-        setItems((prev) => (p === 0 ? nextItems : [...prev, ...nextItems]));
-        setTotal(total);
-        setPage(p);
-      } catch (e) {
-        setItems((prev) => (p === 0 ? [] : prev));
-        setTotal(0);
-      } finally {
-        setLoading(false);
-        setFirstLoadDone(true);
-      }
-    },
-    [API_URL]
-  );
+  const fetchPage = useCallback(async (q: string, p: number) => {
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams({
+        query: q,
+        page: String(p),
+        max_results: "20",
+      });
+      const resp = await fetch(
+        `${API_URL}/api/recipes/search?${qs.toString()}`,
+        {
+          headers: { Accept: "application/json" },
+        }
+      );
+      const json: ApiResponse = await resp.json();
+      if (!resp.ok) throw new Error("API error");
+      const { items: nextItems, total } = mapApiToItems(json);
+      setItems((prev) => (p === 0 ? nextItems : [...prev, ...nextItems]));
+      setTotal(total);
+      setPage(p);
+    } catch (e) {
+      console.warn("Fetch recipes error:", e);
+      setItems((prev) => (p === 0 ? [] : prev));
+      setTotal(0);
+    } finally {
+      setLoading(false);
+      setFirstLoadDone(true);
+    }
+  }, []);
 
   const onSearch = useCallback(() => {
     Keyboard.dismiss();
