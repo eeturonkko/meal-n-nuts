@@ -5,13 +5,12 @@ import COLORS from "../utils/constants";
 import { NutrientProgressCircle } from "../components/NutrientProgressCircle";
 
 const smallNutrients = [
-  { progress: 105, goal: 150, label: "Proteiini", size: 100, offset: -35 },
-  { progress: 250, goal: 320, label: "Hiilihydraatti", size: 100, offset: 0 },
-  { progress: 60, goal: 70, label: "Rasva", size: 100, offset: -35 },
+  { progress: 100, goal: 150, label: "Proteiini", size: 100, offset: -35 },
+  { progress: 155, goal: 320, label: "Hiilihydraatti", size: 100, offset: 0 },
+  { progress: 30, goal: 70, label: "Rasva", size: 100, offset: -35 },
 ];
 
 export default function HomeScreen() {
-
   const openMeal = (meal: string) => {
     console.log(`Open meal screen: ${meal}`);
   };
@@ -27,7 +26,7 @@ export default function HomeScreen() {
         <View style={[styles.section, styles.top, { alignItems: "center" }]}>
           <NutrientProgressCircle
             progressValue={2000}
-            goalValue={2500}
+            goalValue={3000}
             label="Kalorit"
             size={120}
           />
@@ -53,12 +52,12 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.mealsGrid}>
-          <MealButton label="Aamupala"   onPress={() => openMeal("breakfast")} />
-          <MealButton label="Lounas"     onPress={() => openMeal("lunch")} />
+          <MealButton label="Aamupala" onPress={() => openMeal("breakfast")} />
+          <MealButton label="Lounas" onPress={() => openMeal("lunch")} />
           <MealButton label="Päivällinen" onPress={() => openMeal("dinner")} />
-          <MealButton label="Iltapala"   onPress={() => openMeal("evening")} />
-          <MealButton label="Snacks"     onPress={() => openMeal("snack")} />
-          <MealButton label="Vesi"       onPress={openWaterModal} />
+          <MealButton label="Iltapala" onPress={() => openMeal("evening")} />
+          <MealButton label="Snacks" onPress={() => openMeal("snack")} />
+          <MealButton label="Vesi" onPress={openWaterModal} />
         </View>
       </View>
     </SafeAreaView>
@@ -94,10 +93,9 @@ const styles = StyleSheet.create({
   sectionBody: {
     color: "#334155",
   },
-    mealsGrid: {
+  mealsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    
   },
 });
