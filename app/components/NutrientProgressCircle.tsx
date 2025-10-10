@@ -1,4 +1,12 @@
 import { Svg, Circle, Line, Text as SvgText } from "react-native-svg";
+import Animated, {
+  useAnimatedProps,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import React from "react";
+
+const AnimatedProgressCircle = Animated.createAnimatedComponent(Circle);
 
 type NutrientProgressCircleProps = {
   progressValue: number;
@@ -16,7 +24,20 @@ export const NutrientProgressCircle = ({
   const r = 45;
   const circleLength = 2 * Math.PI * r;
   const visibleLength = 200;
-  const progressBar = progressValue / goalValue;
+  const animatedProgressBar = useSharedValue(0);
+
+  React.useEffect(() => {
+    animatedProgressBar.value = withTiming(progressValue / goalValue, {
+      duration: 2000,
+    });
+  }, [progressValue, goalValue]);
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: Math.min(
+      200,
+      Math.max(0, visibleLength * (1 - animatedProgressBar.value))
+    ),
+  }));
 
   return (
     <Svg height={size} width={size} viewBox="0 0 100 100">
@@ -29,18 +50,20 @@ export const NutrientProgressCircle = ({
         strokeDasharray={`${visibleLength}, ${circleLength}`}
         transform="rotate(143, 50, 50)"
         fill="transparent"
+        strokeLinecap="round"
       />
 
-      <Circle
+      <AnimatedProgressCircle
         cx="50"
         cy="50"
         r={r}
         stroke="#16a34a"
         strokeWidth="8"
         strokeDasharray={`${visibleLength}, ${circleLength}`}
-        strokeDashoffset={visibleLength * (1 - progressBar)}
+        animatedProps={animatedProps}
         transform="rotate(143, 50, 50)"
         fill="transparent"
+        strokeLinecap="round"
       />
 
       <SvgText x="50" y="44" fill="#000" fontSize="20" textAnchor="middle">
@@ -53,7 +76,7 @@ export const NutrientProgressCircle = ({
         {goalValue}
       </SvgText>
 
-      <SvgText x="50" y="90" fill="#000" fontSize="13" textAnchor="middle">
+      <SvgText x="50" y="90" fill="#000" fontSize="12" textAnchor="middle">
         {label}
       </SvgText>
     </Svg>
