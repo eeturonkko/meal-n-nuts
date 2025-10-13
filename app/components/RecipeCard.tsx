@@ -8,6 +8,7 @@ type RecipeCardProps = {
   description?: string;
   image?: string;
   onAddToFavorite?: () => void;
+  onPress?: () => void;
 };
 
 export default function RecipeCard({
@@ -15,32 +16,35 @@ export default function RecipeCard({
   description,
   image,
   onAddToFavorite,
+  onPress,
 }: RecipeCardProps) {
   const imgSrc = image
     ? { uri: image }
     : { uri: "https://via.placeholder.com/120x120?text=Recipe" };
 
   return (
-    <View style={styles.card}>
-      <Image source={imgSrc} style={styles.thumb} resizeMode="cover" />
-      <View style={styles.meta}>
-        <Text style={styles.title} numberOfLines={2}>
-          {name}
-        </Text>
-        {!!description && (
-          <Text style={styles.desc} numberOfLines={3}>
-            {description}
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+      <View style={styles.card}>
+        <Image source={imgSrc} style={styles.thumb} resizeMode="cover" />
+        <View style={styles.meta}>
+          <Text style={styles.title} numberOfLines={2}>
+            {name}
           </Text>
-        )}
-        <TouchableOpacity
-          onPress={onAddToFavorite}
-          style={styles.favBtn}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.favText}>Add to favorites</Text>
-        </TouchableOpacity>
+          {!!description && (
+            <Text style={styles.desc} numberOfLines={3}>
+              {description}
+            </Text>
+          )}
+          <TouchableOpacity
+            onPress={onAddToFavorite}
+            style={styles.favBtn}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.favText}>Add to favorites</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -52,7 +56,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: COLORS.bg,
     borderWidth: 1,
-    borderColor: COLORS.outline,
+    borderColor: COLORS.inputBorder,
   },
   thumb: {
     width: 96,
@@ -60,11 +64,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: COLORS.inputBg,
   },
-  meta: {
-    flex: 1,
-    minHeight: 96,
-    justifyContent: "space-between",
-  },
+  meta: { flex: 1, minHeight: 96, justifyContent: "space-between" },
   title: { color: COLORS.white, fontSize: 16, fontWeight: "700" },
   desc: { color: COLORS.muted, fontSize: 13, marginTop: 2 },
   favBtn: {

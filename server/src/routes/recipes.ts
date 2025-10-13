@@ -73,7 +73,6 @@ async function callRecipesSearch(
 
   const url = new URL("https://platform.fatsecret.com/rest/recipes/search/v3");
   url.searchParams.set("format", "json");
-  url.searchParams.set("region", "FI");
   url.searchParams.set("page_number", String(page));
   url.searchParams.set("max_results", String(max));
   url.searchParams.set("sort_by", sortBy);
@@ -135,6 +134,59 @@ router.get("/search", async (req, res) => {
     return res
       .status(500)
       .json({ error: "Failed to search recipes", message: err.message });
+  }
+});
+
+async function callRecipeGetV2(token: string, recipeId: string) {
+  const url = new URL("https://platform.fatsecret.com/rest/recipe/v2");
+  url.searchParams.set("format", "json");
+  url.searchParams.set("recipe_id", recipeId);
+
+  const resp = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+
+  let data: any = null;
+  let raw = "";
+  try {
+    raw = await resp.text();
+    data = raw ? JSON.parse(raw) : {};
+  } catch {}
+
+  return { resp, data, raw };
+}
+
+router.get("/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    if (!id)
+      return res.status(400).json({ code: 400, message: "Missing recipe id" });
+
+    const token = await getAccessToken();
+    const { resp, data, raw } = await callRecipeGetV2(token, id);
+
+    if (!resp.ok) {
+      const errCode = data?.error?.code ?? data?.code ?? resp.status;
+      const message =
+        data?.error?.message ??
+        data?.message ??
+        raw?.slice(0, 300) ??
+        "Unknown error";
+      return res
+        .status(resp.status)
+        .json({ code: errCode, message, raw: data ?? raw });
+    }
+
+    return res.json(data);
+  } catch (err: any) {
+    console.error("[recipes.getById] error:", err.message);
+    return res
+      .status(500)
+      .json({ error: "Failed to fetch recipe", message: err.message });
   }
 });
 
