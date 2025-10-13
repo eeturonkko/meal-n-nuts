@@ -1,5 +1,6 @@
+import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -30,7 +31,6 @@ type ApiRecipe = {
   recipe_description?: string;
   recipe_image?: string;
 };
-
 type ApiResponse = {
   recipes?: {
     recipe?: ApiRecipe[];
@@ -39,7 +39,6 @@ type ApiResponse = {
     total_results?: number;
   };
 };
-
 type ListItem = {
   id: string;
   name: string;
@@ -82,7 +81,6 @@ type FatSecretRecipe = {
   };
   directions?: { direction?: any[] };
 };
-
 type RecipeGetResponseV2 =
   | { recipe?: FatSecretRecipe }
   | { recipes?: { recipe?: FatSecretRecipe | FatSecretRecipe[] } };
@@ -92,18 +90,14 @@ function pickFirstRecipe(data: RecipeGetResponseV2): FatSecretRecipe | null {
     return (data as any).recipe as FatSecretRecipe;
   const rr = (data as any)?.recipes?.recipe;
   if (!rr) return null;
-  if (Array.isArray(rr)) return rr[0] ?? null;
-  return rr as FatSecretRecipe;
+  return Array.isArray(rr) ? rr[0] ?? null : (rr as FatSecretRecipe);
 }
-
 function pickImage(r: FatSecretRecipe): string | undefined {
   if (r.recipe_image) return r.recipe_image;
   const ri = r.recipe_images?.recipe_image;
   if (!ri) return undefined;
-  if (Array.isArray(ri)) return ri[0];
-  return ri;
+  return Array.isArray(ri) ? ri[0] : ri;
 }
-
 function normalizeIngredients(v: any[] | undefined): string[] {
   if (!v) return [];
   return v
@@ -116,7 +110,6 @@ function normalizeIngredients(v: any[] | undefined): string[] {
     })
     .filter(Boolean);
 }
-
 function normalizeTypes(raw: any[] | undefined): string[] {
   if (!raw) return [];
   return raw
@@ -127,7 +120,6 @@ function normalizeTypes(raw: any[] | undefined): string[] {
     })
     .filter(Boolean);
 }
-
 function pickNutrition(
   r: FatSecretRecipe
 ):
@@ -139,7 +131,6 @@ function pickNutrition(
   const { calories, carbohydrate, fat, protein } = s;
   return { calories, carbohydrate, fat, protein };
 }
-
 function pickDirections(
   r: FatSecretRecipe
 ): { number: string; text: string }[] {
@@ -151,10 +142,13 @@ function pickDirections(
       number: String(d?.direction_number ?? ""),
       text: String(d?.direction_description ?? "").trim(),
     }))
-    .filter((d: any) => d.text);
+    .filter((d) => d.text);
 }
 
 export default function Recipes() {
+  const { user, isLoaded } = useUser();
+  const userId = isLoaded ? user?.id ?? "" : "";
+
   const [tab, setTab] = useState<"search" | "favorites">("search");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<ListItem[]>([]);
@@ -162,16 +156,21 @@ export default function Recipes() {
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [firstLoadDone, setFirstLoadDone] = useState(false);
+
+  const [favItems, setFavItems] = useState<ListItem[]>([]);
+  const [favLoading, setFavLoading] = useState(false);
+
   const [selected, setSelected] = useState<ListItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [detail, setDetail] = useState<RecipeDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
-  const canLoadMore = useMemo(() => {
-    if (total == null) return false;
-    return items.length < total;
-  }, [items.length, total]);
+  const canLoadMore = useMemo(
+    () => (total == null ? false : items.length < total),
+    [items.length, total]
+  );
 
   const mapApiToItems = (
     res: ApiResponse
@@ -213,6 +212,45 @@ export default function Recipes() {
       setFirstLoadDone(true);
     }
   }, []);
+
+  const fetchFavoritesExpanded = useCallback(async () => {
+    if (!userId) {
+      setFavItems([]);
+      return;
+    }
+    setFavLoading(true);
+    try {
+      const resp = await fetch(
+        `${API_URL}/api/recipes/favorites?user_id=${encodeURIComponent(
+          userId
+        )}&expand=1`,
+        {
+          headers: { Accept: "application/json" },
+        }
+      );
+      const json = await resp.json();
+      const arr: ListItem[] = (json?.favorites || []).map((r: any) => ({
+        id: String(r.id),
+        name: String(r.name ?? ""),
+        description: r.description ?? "",
+        image: r.image ?? undefined,
+      }));
+      setFavItems(arr);
+      setFavoriteIds(new Set(arr.map((x) => x.id)));
+    } catch {
+      setFavItems([]);
+    } finally {
+      setFavLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (tab === "favorites") fetchFavoritesExpanded();
+  }, [tab, fetchFavoritesExpanded]);
+
+  useEffect(() => {
+    if (userId) fetchFavoritesExpanded();
+  }, [userId, fetchFavoritesExpanded]);
 
   const onSearch = useCallback(() => {
     Keyboard.dismiss();
@@ -286,6 +324,35 @@ export default function Recipes() {
 
   const closeModal = useCallback(() => setModalVisible(false), []);
 
+  const addFavorite = useCallback(
+    async (item: ListItem) => {
+      if (!userId) return;
+      await fetch(`${API_URL}/api/recipes/favorite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ user_id: userId, recipe_id: item.id }),
+      });
+      await fetchFavoritesExpanded();
+    },
+    [userId, fetchFavoritesExpanded]
+  );
+
+  const removeFavorite = useCallback(
+    async (recipeId: string) => {
+      if (!userId) return;
+      const qs = new URLSearchParams({ user_id: userId, recipe_id: recipeId });
+      await fetch(`${API_URL}/api/recipes/favorite?${qs.toString()}`, {
+        method: "DELETE",
+        headers: { Accept: "application/json" },
+      });
+      await fetchFavoritesExpanded();
+    },
+    [userId, fetchFavoritesExpanded]
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: ListItem }) => (
       <RecipeCard
@@ -293,12 +360,14 @@ export default function Recipes() {
         name={item.name}
         description={item.description}
         image={item.image}
-        onAddToFavorite={() => {}}
+        onAddToFavorite={() => addFavorite(item)}
         onPress={() => openModal(item)}
       />
     ),
-    [openModal]
+    [openModal, addFavorite]
   );
+
+  const data = tab === "favorites" ? favItems : items;
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
@@ -328,8 +397,8 @@ export default function Recipes() {
         </TouchableOpacity>
       </View>
 
-      {tab === "search" ? (
-        <View style={{ flex: 1, width: "100%" }}>
+      <View style={{ flex: 1, width: "100%" }}>
+        {tab === "search" && (
           <View style={styles.searchRow}>
             <Ionicons name="search" size={18} color="#888" />
             <TextInput
@@ -346,40 +415,41 @@ export default function Recipes() {
               <Text style={styles.searchBtnText}>Hae</Text>
             </TouchableOpacity>
           </View>
+        )}
 
-          {loading && page === 0 ? (
-            <View style={styles.center}>
-              <ActivityIndicator />
-              <Text style={styles.dim}>Haetaan...</Text>
-            </View>
-          ) : items.length === 0 && firstLoadDone ? (
-            <View style={styles.center}>
-              <Text style={styles.dim}>Ei tuloksia</Text>
-            </View>
-          ) : (
-            <FlatList
-              contentContainerStyle={styles.listPad}
-              data={items}
-              keyExtractor={(it) => it.id}
-              renderItem={renderItem}
-              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-              onEndReachedThreshold={0.3}
-              onEndReached={loadMore}
-              ListFooterComponent={
-                loading && page > 0 ? (
-                  <View style={styles.footerLoad}>
-                    <ActivityIndicator />
-                  </View>
-                ) : null
-              }
-            />
-          )}
-        </View>
-      ) : (
-        <View style={styles.center}>
-          <Text style={styles.dim}>Favorites (coming soon)</Text>
-        </View>
-      )}
+        {(tab === "search" && loading && page === 0) ||
+        (tab === "favorites" && favLoading) ? (
+          <View style={styles.center}>
+            <ActivityIndicator />
+            <Text style={styles.dim}>
+              {tab === "search" ? "Haetaan..." : "Ladataan suosikkeja..."}
+            </Text>
+          </View>
+        ) : data.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.dim}>
+              {tab === "search" ? "Ei tuloksia" : "Ei suosikkeja"}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            contentContainerStyle={styles.listPad}
+            data={data}
+            keyExtractor={(it) => it.id}
+            renderItem={renderItem}
+            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+            onEndReachedThreshold={0.3}
+            onEndReached={tab === "search" ? loadMore : undefined}
+            ListFooterComponent={
+              tab === "search" && loading && page > 0 ? (
+                <View style={styles.footerLoad}>
+                  <ActivityIndicator />
+                </View>
+              ) : null
+            }
+          />
+        )}
+      </View>
 
       <Modal
         visible={modalVisible}
@@ -437,6 +507,37 @@ export default function Recipes() {
                       </View>
                     ))}
                   </View>
+                )}
+
+                {selected && userId.length > 0 && (
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (favoriteIds.has(selected.id)) {
+                        await removeFavorite(selected.id);
+                      } else {
+                        await addFavorite(selected);
+                      }
+                    }}
+                    style={[
+                      styles.favBigBtn,
+                      favoriteIds.has(selected.id) && styles.favBigBtnActive,
+                    ]}
+                    activeOpacity={0.9}
+                  >
+                    <Ionicons
+                      name={
+                        favoriteIds.has(selected.id) ? "heart" : "heart-outline"
+                      }
+                      size={18}
+                      color={COLORS.white}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.favBigText}>
+                      {favoriteIds.has(selected.id)
+                        ? "Poista suosikeista"
+                        : "Lisää suosikkeihin"}
+                    </Text>
+                  </TouchableOpacity>
                 )}
 
                 {detail && detail.directions.length > 0 && (
@@ -578,6 +679,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   tagText: { color: COLORS.white, fontWeight: "700" },
+  favBigBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignSelf: "flex-start",
+    marginTop: 12,
+  },
+  favBigBtnActive: { backgroundColor: COLORS.primaryDark },
+  favBigText: { color: COLORS.white, fontWeight: "700" },
   dirRow: {
     flexDirection: "row",
     alignItems: "flex-start",
