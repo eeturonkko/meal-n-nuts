@@ -1,5 +1,5 @@
-// Recipe functions
 import type { FatSecretRecipe, RecipeGetResponseV2 } from "./types";
+
 export function pickFirstRecipe(
   data: RecipeGetResponseV2
 ): FatSecretRecipe | null {
