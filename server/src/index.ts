@@ -1,10 +1,12 @@
 import cors from "cors";
 import dotenv from "dotenv";
+import "dotenv/config";
 import express from "express";
 import morgan from "morgan";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import foodRouter from "./routes/food.js";
+import recipesRouter from "./routes/recipes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +26,7 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 app.use("/api/food", foodRouter);
-
+app.use("/api/recipes", recipesRouter);
 app.use(express.static(path.join(__dirname, "./public")));
 
 app.get("/health", (_req, res) => {
