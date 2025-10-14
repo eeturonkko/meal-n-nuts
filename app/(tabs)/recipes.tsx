@@ -19,131 +19,25 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import RecipeCard from "../components/RecipeCard";
 import COLORS from "../utils/constants";
+import {
+  normalizeIngredients,
+  normalizeTypes,
+  pickDirections,
+  pickFirstRecipe,
+  pickImage,
+  pickNutrition,
+} from "../utils/functions";
+import type {
+  ApiResponse,
+  ListItem,
+  RecipeDetail,
+  RecipeGetResponseV2,
+} from "../utils/types";
 
 const DEFAULT_API = "http://localhost:4000";
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL ||
   (Platform.OS === "android" ? "http://10.0.2.2:4000" : DEFAULT_API);
-
-type ApiRecipe = {
-  recipe_id: string;
-  recipe_name: string;
-  recipe_description?: string;
-  recipe_image?: string;
-};
-type ApiResponse = {
-  recipes?: {
-    recipe?: ApiRecipe[];
-    page_number?: number;
-    max_results?: number;
-    total_results?: number;
-  };
-};
-type ListItem = {
-  id: string;
-  name: string;
-  description?: string;
-  image?: string;
-};
-
-type RecipeDetail = {
-  id: string;
-  name: string;
-  description?: string;
-  image?: string;
-  ingredients: string[];
-  nutrition?: {
-    calories?: string;
-    carbohydrate?: string;
-    fat?: string;
-    protein?: string;
-  };
-  types: string[];
-  directions: { number: string; text: string }[];
-};
-
-type FatSecretRecipe = {
-  recipe_id: string;
-  recipe_name: string;
-  recipe_description?: string;
-  recipe_image?: string;
-  recipe_images?: { recipe_image?: string | string[] };
-  ingredients?: { ingredient?: any[] };
-  recipe_ingredients?: { ingredient?: any[] };
-  recipe_types?: { recipe_type?: any[] };
-  recipe_categories?: { recipe_category?: any[] };
-  serving_sizes?: { serving?: Record<string, string> };
-  recipe_nutrition?: {
-    calories?: string;
-    carbohydrate?: string;
-    fat?: string;
-    protein?: string;
-  };
-  directions?: { direction?: any[] };
-};
-type RecipeGetResponseV2 =
-  | { recipe?: FatSecretRecipe }
-  | { recipes?: { recipe?: FatSecretRecipe | FatSecretRecipe[] } };
-
-function pickFirstRecipe(data: RecipeGetResponseV2): FatSecretRecipe | null {
-  if ((data as any)?.recipe && typeof (data as any).recipe === "object")
-    return (data as any).recipe as FatSecretRecipe;
-  const rr = (data as any)?.recipes?.recipe;
-  if (!rr) return null;
-  return Array.isArray(rr) ? rr[0] ?? null : (rr as FatSecretRecipe);
-}
-function pickImage(r: FatSecretRecipe): string | undefined {
-  if (r.recipe_image) return r.recipe_image;
-  const ri = r.recipe_images?.recipe_image;
-  if (!ri) return undefined;
-  return Array.isArray(ri) ? ri[0] : ri;
-}
-function normalizeIngredients(v: any[] | undefined): string[] {
-  if (!v) return [];
-  return v
-    .map((x) => {
-      if (typeof x === "string") return x;
-      if (x?.ingredient_description) return String(x.ingredient_description);
-      if (x?.food_name && x?.number_of_units && x?.measurement_description)
-        return `${x.number_of_units} ${x.measurement_description} ${x.food_name}`;
-      return String(x?.name ?? x?.text ?? "").trim() || "";
-    })
-    .filter(Boolean);
-}
-function normalizeTypes(raw: any[] | undefined): string[] {
-  if (!raw) return [];
-  return raw
-    .map((x) => {
-      if (typeof x === "string") return x;
-      if (x?.recipe_category_name) return x.recipe_category_name;
-      return String(x?.name ?? x ?? "").trim();
-    })
-    .filter(Boolean);
-}
-function pickNutrition(
-  r: FatSecretRecipe
-):
-  | { calories?: string; carbohydrate?: string; fat?: string; protein?: string }
-  | undefined {
-  if (r.recipe_nutrition) return r.recipe_nutrition;
-  const s = r.serving_sizes?.serving;
-  if (!s) return undefined;
-  const { calories, carbohydrate, fat, protein } = s;
-  return { calories, carbohydrate, fat, protein };
-}
-function pickDirections(
-  r: FatSecretRecipe
-): { number: string; text: string }[] {
-  const arr = r.directions?.direction;
-  if (!arr) return [];
-  const list = Array.isArray(arr) ? arr : [arr];
-  return list
-    .map((d: any) => ({
-      number: String(d?.direction_number ?? ""),
-      text: String(d?.direction_description ?? "").trim(),
-    }))
-    .filter((d) => d.text);
-}
 
 export default function Recipes() {
   const { user, isLoaded } = useUser();
@@ -155,11 +49,9 @@ export default function Recipes() {
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [firstLoadDone, setFirstLoadDone] = useState(false);
-
+  const [, setFirstLoadDone] = useState(false);
   const [favItems, setFavItems] = useState<ListItem[]>([]);
   const [favLoading, setFavLoading] = useState(false);
-
   const [selected, setSelected] = useState<ListItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [detail, setDetail] = useState<RecipeDetail | null>(null);
