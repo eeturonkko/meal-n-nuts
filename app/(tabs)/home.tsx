@@ -3,7 +3,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MealButton from "../components/MealButton";
 import COLORS from "../utils/constants";
 import { NutrientProgressCircle } from "../components/NutrientProgressCircle";
-
 const smallNutrients = [
   { progress: 100, goal: 150, label: "Proteiini", size: 100, offset: -35 },
   { progress: 155, goal: 320, label: "Hiilihydraatti", size: 100, offset: 0 },
@@ -25,7 +24,7 @@ export default function HomeScreen() {
         {/** JULIUKSEN RAKENTAMINEN */}
         <View style={[styles.section, styles.top, { alignItems: "center" }]}>
           <NutrientProgressCircle
-            progressValue={2000}
+            progressValue={1700}
             goalValue={3000}
             label="Kalorit"
             size={120}

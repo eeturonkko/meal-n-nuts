@@ -1,6 +1,14 @@
 import { useUser } from "@clerk/clerk-expo";
-import React from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import {
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  TextInput,
+  Alert,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import COLORS from "../utils/constants";
 import { SignOutButton } from "./SignOutButton";
@@ -13,6 +21,35 @@ type Props = {
 export default function UserModal({ visible, onClose }: Props) {
   const { user } = useUser();
 
+  const [value, setValue] = useState("");
+  const [total, setTotal] = useState(0);
+
+  const Add = () => {
+    const num = Number(value);
+    if (!isNaN(num)) {
+      const newTotal = total + num;
+      setTotal(newTotal);
+      console.log("Total calories: ", newTotal);
+      setValue("");
+    }
+  };
+
+  const Reset = () => {
+    Alert.alert("Varoitus", "Haluatko varmasti resetoida kalorit?", [
+      { text: "Peru", style: "cancel" },
+      {
+        text: "Reset",
+        style: "destructive",
+        onPress: () => {
+          const newTotal = 0;
+          setTotal(newTotal);
+          console.log("Total calories: ", newTotal);
+          setValue("");
+        },
+      },
+    ]);
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <SafeAreaView style={styles.safe}>
@@ -24,6 +61,69 @@ export default function UserModal({ visible, onClose }: Props) {
               {user?.emailAddresses?.[0]?.emailAddress ?? "Guest"}
             </Text>
           </Text>
+          <View style={styles.inputSection}>
+            <View style={{ width: "100%", alignItems: "center" }}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 800,
+                  color: COLORS.white,
+                }}
+              >
+                Add nutrients
+              </Text>
+            </View>
+
+            <View style={{ width: "100%" }}>
+              <TextInput
+                inputMode="numeric"
+                style={styles.input}
+                placeholder="Kalorit"
+                value={value}
+                onChangeText={setValue}
+              />
+            </View>
+
+            <View style={{ width: "100%" }}>
+              <TextInput
+                inputMode="numeric"
+                style={styles.input}
+                placeholder="Proteiini"
+              />
+            </View>
+
+            <View style={{ width: "100%" }}>
+              <TextInput
+                inputMode="numeric"
+                style={styles.input}
+                placeholder="Hiilihydraatti"
+              />
+            </View>
+
+            <View style={{ width: "100%" }}>
+              <TextInput
+                inputMode="numeric"
+                style={styles.input}
+                placeholder="Rasva"
+              />
+            </View>
+
+            <View
+              style={{
+                width: "100%",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-evenly",
+              }}
+            >
+              <TouchableOpacity onPress={Add}>
+                <Text style={styles.addBtn}>Add</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={Reset}>
+                <Text style={styles.addBtn}>Reset</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <View style={styles.actions}>
             <SignOutButton />
@@ -78,6 +178,34 @@ const styles = StyleSheet.create({
   },
   closeText: {
     color: COLORS.white,
+    fontWeight: "700",
+  },
+  inputSection: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 20,
+    width: "100%",
+    height: 425,
+    alignItems: "flex-start",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    justifyContent: "center",
+  },
+  input: {
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
+    backgroundColor: COLORS.white,
+    borderRadius: 10,
+  },
+  addBtn: {
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    color: COLORS.primary,
     fontWeight: "700",
   },
 });
