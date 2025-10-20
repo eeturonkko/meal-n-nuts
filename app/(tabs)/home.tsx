@@ -1,8 +1,11 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MealButton from "../components/MealButton";
-import COLORS from "../utils/constants";
 import { NutrientProgressCircle } from "../components/NutrientProgressCircle";
+import WaterModal from "../components/WaterModal";
+import COLORS from "../utils/constants";
 
 const smallNutrients = [
   { progress: 100, goal: 150, label: "Proteiini", size: 100, offset: -35 },
@@ -11,12 +14,11 @@ const smallNutrients = [
 ];
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const [showWater, setShowWater] = React.useState(false);
+  
   const openMeal = (meal: string) => {
     console.log(`Open meal screen: ${meal}`);
-  };
-
-  const openWaterModal = () => {
-    console.log("Open water modal");
   };
 
   return (
@@ -57,8 +59,17 @@ export default function HomeScreen() {
           <MealButton label="Päivällinen" onPress={() => openMeal("dinner")} />
           <MealButton label="Iltapala" onPress={() => openMeal("evening")} />
           <MealButton label="Snacks" onPress={() => openMeal("snack")} />
-          <MealButton label="Vesi" onPress={openWaterModal} />
+          <MealButton label="Vesi" onPress={() => setShowWater(true)} />
         </View>
+
+        <WaterModal
+          visible={showWater}
+          onClose={() => setShowWater(false)}
+          onSave={(ml) => {
+            console.log("Lisättiin vettä:", ml, "ml");
+            // TODO: tallennus veden määrä käyttäjän dataan
+          }}
+        />
       </View>
     </SafeAreaView>
   );
