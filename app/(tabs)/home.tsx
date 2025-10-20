@@ -27,7 +27,7 @@ export default function HomeScreen() {
         {/** JULIUKSEN RAKENTAMINEN */}
         <View style={[styles.section, styles.top, { alignItems: "center" }]}>
           <NutrientProgressCircle
-            progressValue={2000}
+            progressValue={1700}
             goalValue={3000}
             label="Kalorit"
             size={120}
