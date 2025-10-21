@@ -8,6 +8,10 @@ import {
   View,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import COLORS from "../utils/constants";
@@ -52,88 +56,93 @@ export default function UserModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.card}>
-          <Text style={styles.title}>User</Text>
-          <Text style={styles.subtitle}>
-            Hello{" "}
-            <Text style={{ fontWeight: "700" }}>
-              {user?.emailAddresses?.[0]?.emailAddress ?? "Guest"}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.safe}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.card}>
+            <Text style={styles.title}>User</Text>
+            <Text style={styles.subtitle}>
+              Hello{" "}
+              <Text style={{ fontWeight: "700" }}>
+                {user?.emailAddresses?.[0]?.emailAddress ?? "Guest"}
+              </Text>
             </Text>
-          </Text>
-          <View style={styles.inputSection}>
-            <View style={{ width: "100%", alignItems: "center" }}>
-              <Text
+            <View style={styles.inputSection}>
+              <View style={{ width: "100%", alignItems: "center" }}>
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 800,
+                    color: COLORS.white,
+                  }}
+                >
+                  Add nutrients
+                </Text>
+              </View>
+
+              <View style={{ width: "100%" }}>
+                <TextInput
+                  inputMode="numeric"
+                  style={styles.input}
+                  placeholder="Kalorit"
+                  value={value}
+                  onChangeText={setValue}
+                />
+              </View>
+
+              <View style={{ width: "100%" }}>
+                <TextInput
+                  inputMode="numeric"
+                  style={styles.input}
+                  placeholder="Proteiini"
+                />
+              </View>
+
+              <View style={{ width: "100%" }}>
+                <TextInput
+                  inputMode="numeric"
+                  style={styles.input}
+                  placeholder="Hiilihydraatti"
+                />
+              </View>
+
+              <View style={{ width: "100%" }}>
+                <TextInput
+                  inputMode="numeric"
+                  style={styles.input}
+                  placeholder="Rasva"
+                />
+              </View>
+
+              <View
                 style={{
-                  fontSize: 20,
-                  fontWeight: 800,
-                  color: COLORS.white,
+                  width: "100%",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-evenly",
                 }}
               >
-                Add nutrients
-              </Text>
+                <TouchableOpacity onPress={Add}>
+                  <Text style={styles.addBtn}>Add</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={Reset}>
+                  <Text style={styles.addBtn}>Reset</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={{ width: "100%" }}>
-              <TextInput
-                inputMode="numeric"
-                style={styles.input}
-                placeholder="Kalorit"
-                value={value}
-                onChangeText={setValue}
-              />
+            <View style={styles.actions}>
+              <SignOutButton />
             </View>
 
-            <View style={{ width: "100%" }}>
-              <TextInput
-                inputMode="numeric"
-                style={styles.input}
-                placeholder="Proteiini"
-              />
-            </View>
-
-            <View style={{ width: "100%" }}>
-              <TextInput
-                inputMode="numeric"
-                style={styles.input}
-                placeholder="Hiilihydraatti"
-              />
-            </View>
-
-            <View style={{ width: "100%" }}>
-              <TextInput
-                inputMode="numeric"
-                style={styles.input}
-                placeholder="Rasva"
-              />
-            </View>
-
-            <View
-              style={{
-                width: "100%",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-evenly",
-              }}
-            >
-              <TouchableOpacity onPress={Add}>
-                <Text style={styles.addBtn}>Add</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={Reset}>
-                <Text style={styles.addBtn}>Reset</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <Text style={styles.closeText}>Close</Text>
+            </TouchableOpacity>
           </View>
-
-          <View style={styles.actions}>
-            <SignOutButton />
-          </View>
-
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Text style={styles.closeText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
