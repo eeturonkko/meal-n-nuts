@@ -24,6 +24,11 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
+app.disable("etag");
+app.use((_req, res, next) => {
+  res.set("Cache-Control", "no-store, max-age=0");
+  next();
+});
 
 app.use("/api/food", foodRouter);
 app.use("/api/recipes", recipesRouter);

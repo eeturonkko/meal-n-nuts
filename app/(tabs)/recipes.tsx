@@ -71,6 +71,8 @@ export default function Recipes() {
 
   const closeModal = useCallback(() => setModalVisible(false), []);
 
+  const data = tab === "favorites" ? favItems : items;
+
   const renderItem = useCallback(
     ({ item }: { item: ListItem }) => (
       <RecipeCard
@@ -78,14 +80,14 @@ export default function Recipes() {
         name={item.name}
         description={item.description}
         image={item.image}
-        onAddToFavorite={() => addFavorite(item)}
+        onAddToFavorite={
+          tab === "favorites" ? undefined : () => addFavorite(item)
+        }
         onPress={() => openModal(item)}
       />
     ),
-    [openModal, addFavorite]
+    [openModal, addFavorite, tab]
   );
-
-  const data = tab === "favorites" ? favItems : items;
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>

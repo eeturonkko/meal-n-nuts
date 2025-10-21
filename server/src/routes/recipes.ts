@@ -46,13 +46,6 @@ const yes = (v: unknown) =>
     ? ["1", "true", "yes", "on"].includes(v.toLowerCase())
     : !!v;
 
-const SORT_VALUES = new Set([
-  "newest",
-  "oldest",
-  "caloriesPerServingAscending",
-  "caloriesPerServingDescending",
-]);
-
 async function callRecipesSearch(
   token: string,
   params: {
@@ -60,30 +53,69 @@ async function callRecipesSearch(
     page: number;
     max: number;
     mustHaveImages: boolean;
-    sortBy: string;
+
+    extra?: Record<string, string>;
   }
 ) {
-  const { query, page, max, mustHaveImages, sortBy } = params;
+  const { query, page, max, mustHaveImages, extra } = params;
+
   const url = new URL("https://platform.fatsecret.com/rest/recipes/search/v3");
+  if (query) url.searchParams.set("search_expression", query);
   url.searchParams.set("format", "json");
   url.searchParams.set("page_number", String(page));
   url.searchParams.set("max_results", String(max));
-  url.searchParams.set("sort_by", sortBy);
-  if (query) url.searchParams.set("search_expression", query);
+
   if (mustHaveImages) url.searchParams.set("must_have_images", "true");
-  const resp = await fetch(url.toString(), {
+
+  const allowed = new Set([
+    "recipe_types",
+    "recipe_types_matchall",
+    "calories.from",
+    "calories.to",
+    "carb_percentage.from",
+    "carb_percentage.to",
+    "protein_percentage.from",
+    "protein_percentage.to",
+    "fat_percentage.from",
+    "fat_percentage.to",
+    "prep_time.from",
+    "prep_time.to",
+  ]);
+  if (extra) {
+    for (const [k, v] of Object.entries(extra)) {
+      if (v != null && allowed.has(k)) url.searchParams.set(k, String(v));
+    }
+  }
+
+  // hard cache-buster for FatSecret’s edge
+  url.searchParams.set("_", String(Date.now()));
+
+  const upstream = url.toString();
+  console.log("[recipes.search] upstream:", upstream);
+
+  const resp = await fetch(upstream, {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      Pragma: "no-cache",
+      "User-Agent": "mealnnuts-server/1.0 (+https://localhost)", // helps some CDNs
+    },
   });
+
   let data: any = {};
   try {
     data = await resp.json();
   } catch {}
+
   return { resp, data };
 }
 
 router.get("/search", async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, max-age=0");
+
     const token = await getAccessToken();
     const query = String(req.query.query || "").trim();
     const page = clamp(
@@ -97,15 +129,23 @@ router.get("/search", async (req, res) => {
       50
     );
     const mustHaveImages = yes(req.query.must_have_images ?? true);
-    const sortRaw = String(req.query.sort_by || "newest");
-    const sort_by = SORT_VALUES.has(sortRaw) ? sortRaw : "newest";
-    let { resp, data } = await callRecipesSearch(token, {
+
+    // pass through optional filters from client (e.g., calories.to)
+    const extra: Record<string, string> = {};
+    for (const k of Object.keys(req.query)) {
+      if (k.includes(".") || k.startsWith("recipe_"))
+        extra[k] = String(req.query[k] || "");
+    }
+
+    const { resp, data } = await callRecipesSearch(token, {
       query,
       page,
       max,
       mustHaveImages,
-      sortBy: sort_by,
+
+      extra,
     });
+
     if (!resp.ok) {
       const errCode = data?.error?.code ?? data?.code ?? resp.status;
       const message = data?.error?.message ?? data?.message ?? "Unknown error";
@@ -113,6 +153,7 @@ router.get("/search", async (req, res) => {
         .status(resp.status)
         .json({ code: errCode, message, raw: data });
     }
+
     return res.json(data);
   } catch (err: any) {
     return res

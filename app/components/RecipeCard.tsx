@@ -35,13 +35,15 @@ export default function RecipeCard({
               {description}
             </Text>
           )}
-          <TouchableOpacity
-            onPress={onAddToFavorite}
-            style={styles.favBtn}
-            activeOpacity={0.9}
-          >
-            <Text style={styles.favText}>Add to favorites</Text>
-          </TouchableOpacity>
+          {!!onAddToFavorite && (
+            <TouchableOpacity
+              onPress={onAddToFavorite}
+              style={styles.favBtn}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.favText}>Add to favorites</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </TouchableOpacity>
