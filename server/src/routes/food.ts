@@ -1,5 +1,8 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import express from "express";
+import path from "node:path";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const router = express.Router();
 
@@ -7,131 +10,134 @@ let tokenCache = { accessToken: "", expiresAt: 0 };
 
 async function getAccessToken(): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  if (tokenCache.accessToken && tokenCache.expiresAt - 60 > now) {
+  if (tokenCache.accessToken && tokenCache.expiresAt - 60 > now)
     return tokenCache.accessToken;
-  }
-
-  const clientId = process.env.FATSECRET_CLIENT_ID || "";
-  const secretId = process.env.FATSECRET_SECRET_ID || "";
-  if (!clientId || !secretId) {
-    throw new Error("[env] FATSECRET_CLIENT_ID / FATSECRET_SECRET_ID missing");
-  }
-
-  const scope = (process.env.FATSECRET_SCOPES || "basic barcode").trim();
-
+  const CLIENT_ID = process.env.FATSECRET_CLIENT_ID || "";
+  const CLIENT_SECRET = process.env.FATSECRET_SECRET_ID || "";
+  if (!CLIENT_ID || !CLIENT_SECRET)
+    throw new Error(
+      "[fatsecret] Missing FATSECRET_CLIENT_ID or FATSECRET_SECRET_ID"
+    );
   const resp = await fetch("https://oauth.fatsecret.com/connect/token", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Authorization:
         "Basic " +
-        Buffer.from(`${clientId}:${secretId}`, "utf8").toString("base64"),
+        Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`, "utf8").toString("base64"),
     },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      scope,
+      scope: "premier",
     }),
   });
-
   if (!resp.ok) {
     const text = await resp.text();
     throw new Error(`[fatsecret] token error: ${text}`);
   }
-
   const json = await resp.json();
   tokenCache.accessToken = json.access_token;
   tokenCache.expiresAt = now + (json.expires_in || 3600);
   return tokenCache.accessToken;
 }
 
-const toGTIN13 = (raw = "") => {
-  const digits = raw.replace(/\D/g, "");
-  return digits.length > 13 ? digits.slice(-13) : digits.padStart(13, "0");
-};
+const clamp = (n: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, n));
+const yes = (v: unknown) =>
+  typeof v === "string"
+    ? ["1", "true", "yes", "on"].includes(v.toLowerCase())
+    : !!v;
 
-function isValidGTIN13(code: string): boolean {
-  if (!/^\d{13}$/.test(code)) return false;
-  const nums = code.split("").map(Number);
-  const check = nums.pop()!;
-  const sum = nums.reduce((acc, n, i) => acc + n * (i % 2 === 0 ? 1 : 3), 0);
-  const calc = (10 - (sum % 10)) % 10;
-  return calc === check;
-}
-
-async function fetchFoodIdByBarcode(
-  barcode: string,
-  region?: string
-): Promise<string | null> {
-  const token = await getAccessToken();
-
-  const url = new URL(
-    "https://platform.fatsecret.com/rest/food/barcode/find-by-id/v1"
-  );
-  url.searchParams.set("barcode", barcode);
+async function callFoodsSearch(
+  token: string,
+  params: {
+    query: string;
+    page: number;
+    max: number;
+    includeImages: boolean;
+    flagDefaultServing: boolean;
+    region?: string;
+    language?: string;
+  }
+) {
+  const {
+    query,
+    page,
+    max,
+    includeImages,
+    flagDefaultServing,
+    region,
+    language,
+  } = params;
+  const url = new URL("https://platform.fatsecret.com/rest/foods/search/v4");
   url.searchParams.set("format", "json");
+  url.searchParams.set("page_number", String(page));
+  url.searchParams.set("max_results", String(max));
+  if (query) url.searchParams.set("search_expression", query);
+  if (includeImages) url.searchParams.set("include_food_images", "true");
+  if (flagDefaultServing) url.searchParams.set("flag_default_serving", "true");
   if (region) url.searchParams.set("region", region);
-
-  const u = url.toString();
-  console.log("[fatsecret] calling:", u);
-
-  const resp = await fetch(u, {
+  if (region && language) url.searchParams.set("language", language);
+  url.searchParams.set("_", String(Date.now()));
+  const upstream = url.toString();
+  const resp = await fetch(upstream, {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+      Pragma: "no-cache",
+    },
   });
-
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok) {
-    console.warn("[fatsecret] http error", resp.status, data);
-    return null;
-  }
-
-  const id = data?.food_id?.value ?? data?.food_id ?? null;
-  if (!id) console.log("[fatsecret] no mapping for barcode. raw:", data);
-  return id ? String(id) : null;
-}
-
-async function resolveFoodId(gtin13: string): Promise<string | null> {
-  const region = process.env.FATSECRET_REGION || "FI";
-
-  const idRegion = await fetchFoodIdByBarcode(gtin13, region);
-  if (idRegion) {
-    console.log(
-      `[fatsecret] found via barcode (region=${region}): ${idRegion}`
-    );
-    return idRegion;
-  }
-
-  console.log(`[fatsecret] region=${region} not found → retry without region`);
-  const idGlobal = await fetchFoodIdByBarcode(gtin13);
-  if (idGlobal) {
-    console.log("[fatsecret] found via barcode (global):", idGlobal);
-    return idGlobal;
-  }
-
-  return null;
-}
-
-router.get("/:barcode", async (req, res) => {
+  let data: any = {};
   try {
-    const gtin13 = toGTIN13(req.params.barcode || "");
-    if (!isValidGTIN13(gtin13)) {
-      console.warn("[fatsecret] WARNING: invalid GTIN-13:", gtin13);
-    }
+    data = await resp.json();
+  } catch {}
+  return { resp, data };
+}
 
-    const foodId = await resolveFoodId(gtin13);
-
-    console.log(
-      `[fatsecret] barcode ${gtin13} → food_id:`,
-      foodId || "NOT FOUND"
+router.get("/search", async (req, res) => {
+  try {
+    res.setHeader("Cache-Control", "no-store, max-age=0");
+    const token = await getAccessToken();
+    const query = String(req.query.query || "").trim();
+    const page = clamp(
+      parseInt(String(req.query.page ?? "0"), 10) || 0,
+      0,
+      9999
     );
-
-    if (!foodId) return res.status(404).json({ error: "Food not found" });
-    res.json({ food_id: foodId });
+    const max = clamp(
+      parseInt(String(req.query.max_results ?? "20"), 10) || 20,
+      1,
+      50
+    );
+    const includeImages = yes(req.query.include_food_images ?? "1");
+    const flagDefault = yes(req.query.flag_default_serving ?? "1");
+    const region =
+      typeof req.query.region === "string" ? req.query.region : undefined;
+    const language =
+      typeof req.query.language === "string" ? req.query.language : undefined;
+    const { resp, data } = await callFoodsSearch(token, {
+      query,
+      page,
+      max,
+      includeImages,
+      flagDefaultServing: flagDefault,
+      region,
+      language,
+    });
+    if (!resp.ok) {
+      const errCode = data?.error?.code ?? data?.code ?? resp.status;
+      const message = data?.error?.message ?? data?.message ?? "Unknown error";
+      return res
+        .status(resp.status)
+        .json({ code: errCode, message, raw: data });
+    }
+    return res.json(data);
   } catch (err: any) {
-    console.error("[fatsecret] error:", err.message);
-    res
+    return res
       .status(500)
-      .json({ error: "Failed to fetch food_id", message: err.message });
+      .json({ error: "Failed to search foods", message: err.message });
   }
 });
 

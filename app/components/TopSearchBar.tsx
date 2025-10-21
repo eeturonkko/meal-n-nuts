@@ -35,7 +35,6 @@ export default function TopSearchBar({
           </TouchableOpacity>
 
           <View style={styles.inputWrap}>
-            <Ionicons name="search" size={18} style={styles.iconLeft} />
             <TextInput
               value={value}
               onChangeText={onChangeText}
@@ -46,7 +45,7 @@ export default function TopSearchBar({
               style={styles.input}
             />
             <TouchableOpacity onPress={onSearchPress} style={styles.iconRight}>
-              <Ionicons name="mic-outline" size={18} />
+              <Ionicons name="search" size={18} />
             </TouchableOpacity>
           </View>
         </View>
