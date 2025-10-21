@@ -50,6 +50,7 @@ export function useRecipeSearch(API_URL: string) {
           query: q,
           page: String(p),
           max_results: "20",
+          nocache: String(Date.now()),
         });
         const resp = await fetch(
           `${API_URL}/api/recipes/search?${qs.toString()}`,
