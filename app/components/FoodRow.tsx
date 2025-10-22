@@ -1,5 +1,5 @@
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import COLORS from "../utils/constants";
 
 export type FoodListItem = {
@@ -7,7 +7,7 @@ export type FoodListItem = {
   name: string;
   brand?: string;
   type?: string;
-  image?: string;
+
   calories?: string;
   serving?: string;
 };
@@ -18,15 +18,10 @@ type Props = {
 };
 
 export default function FoodRow({ item, onPress }: Props) {
-  const imgSrc = item.image
-    ? { uri: item.image }
-    : { uri: "https://via.placeholder.com/96x96?text=Food" };
-
   console.log(item);
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
       <View style={styles.card}>
-        <Image source={imgSrc} style={styles.thumb} resizeMode="cover" />
         <View style={styles.meta}>
           <Text style={styles.title} numberOfLines={2}>
             {item.name}

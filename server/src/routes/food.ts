@@ -54,33 +54,23 @@ async function callFoodsSearch(
     query: string;
     page: number;
     max: number;
-    includeImages: boolean;
     flagDefaultServing: boolean;
     region?: string;
     language?: string;
   }
 ) {
-  const {
-    query,
-    page,
-    max,
-    includeImages,
-    flagDefaultServing,
-    region,
-    language,
-  } = params;
+  const { query, page, max, flagDefaultServing, region, language } = params;
   const url = new URL("https://platform.fatsecret.com/rest/foods/search/v4");
   url.searchParams.set("format", "json");
   url.searchParams.set("page_number", String(page));
   url.searchParams.set("max_results", String(max));
   if (query) url.searchParams.set("search_expression", query);
-  if (includeImages) url.searchParams.set("include_food_images", "true");
   if (flagDefaultServing) url.searchParams.set("flag_default_serving", "true");
   if (region) url.searchParams.set("region", region);
   if (region && language) url.searchParams.set("language", language);
   url.searchParams.set("_", String(Date.now()));
-  const upstream = url.toString();
-  const resp = await fetch(upstream, {
+
+  const resp = await fetch(url.toString(), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -89,6 +79,7 @@ async function callFoodsSearch(
       Pragma: "no-cache",
     },
   });
+
   let data: any = {};
   try {
     data = await resp.json();
@@ -111,21 +102,21 @@ router.get("/search", async (req, res) => {
       1,
       50
     );
-    const includeImages = yes(req.query.include_food_images ?? "1");
     const flagDefault = yes(req.query.flag_default_serving ?? "1");
     const region =
       typeof req.query.region === "string" ? req.query.region : undefined;
     const language =
       typeof req.query.language === "string" ? req.query.language : undefined;
+
     const { resp, data } = await callFoodsSearch(token, {
       query,
       page,
       max,
-      includeImages,
       flagDefaultServing: flagDefault,
       region,
       language,
     });
+
     if (!resp.ok) {
       const errCode = data?.error?.code ?? data?.code ?? resp.status;
       const message = data?.error?.message ?? data?.message ?? "Unknown error";
