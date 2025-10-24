@@ -17,9 +17,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [showWater, setShowWater] = React.useState(false);
   
-  const openMeal = (meal: string) => {
-    console.log(`Open meal screen: ${meal}`);
-  };
+  const openMeal = (meal: string) => router.push(`/screens/${meal}`);
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.safe}>
