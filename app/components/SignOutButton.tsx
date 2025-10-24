@@ -21,7 +21,7 @@ export const SignOutButton = () => {
       activeOpacity={0.9}
       style={styles.button}
     >
-      <Text style={styles.text}>Sign out</Text>
+      <Text style={styles.text}>Kirjaudu ulos</Text>
     </TouchableOpacity>
   );
 };
