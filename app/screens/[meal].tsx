@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { NutrientProgressCircle } from "../components/NutrientProgressCircle";
 import COLORS from "../utils/constants";
+import FoodSearchModal from "../components/FoodSearchModal";
 
 type MealKey = "breakfast" | "lunch" | "dinner" | "evening" | "snack";
 
