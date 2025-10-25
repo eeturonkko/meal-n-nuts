@@ -15,6 +15,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import BarcodeResultModal, {
+  BarcodeFood,
+} from "../components/BarcodeResultModal";
 import COLORS from "../utils/constants";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
@@ -24,12 +27,42 @@ const toGTIN13 = (raw: string) => {
   return digits.length > 13 ? digits.slice(-13) : digits.padStart(13, "0");
 };
 
+function normalizeFood(json: any): BarcodeFood | null {
+  const food = json?.food;
+  if (!food) return null;
+
+  const srv = food.servings?.serving;
+  const arr = Array.isArray(srv) ? srv : srv ? [srv] : [];
+
+  return {
+    id: String(food.food_id ?? ""),
+    name: String(food.food_name ?? ""),
+    brand: food.brand_name ? String(food.brand_name) : undefined,
+    type: String(food.food_type ?? ""),
+    url: food.food_url ? String(food.food_url) : undefined,
+    servings: arr.map((s: any) => ({
+      id: String(s.serving_id ?? s.serving_description ?? Math.random()),
+      desc: String(s.serving_description ?? ""),
+      calories: s.calories != null ? String(s.calories) : undefined,
+      protein: s.protein != null ? String(s.protein) : undefined,
+      carbohydrate: s.carbohydrate != null ? String(s.carbohydrate) : undefined,
+      fat: s.fat != null ? String(s.fat) : undefined,
+    })),
+  };
+}
+
 export default function ScanScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
-  const [scanActive, setScanActive] = useState(true);
-  const [cameraKey, setCameraKey] = useState(0);
+
   const isFocused = useIsFocused();
+  const [cameraKey, setCameraKey] = useState(0);
+  const [scanActive, setScanActive] = useState(true);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [result, setResult] = useState<BarcodeFood | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const lockRef = useRef(false);
   const lastCodeRef = useRef<string | null>(null);
 
@@ -42,6 +75,9 @@ export default function ScanScreen() {
       lockRef.current = false;
       lastCodeRef.current = null;
       setScanActive(true);
+      setResult(null);
+      setError(null);
+      setModalVisible(false);
       setCameraKey((k) => k + 1);
       return () => {
         lockRef.current = false;
@@ -49,41 +85,71 @@ export default function ScanScreen() {
     }, [])
   );
 
-  const close = useCallback(() => {
+  const closeScreen = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/home");
   }, [router]);
 
-  const onBarCodeScanned = useCallback(
-    async (res: BarcodeScanningResult) => {
-      if (lockRef.current) return;
-      const gtin13 = toGTIN13(res.data);
-      if (!gtin13 || lastCodeRef.current === gtin13) return;
+  const handleCloseResult = useCallback(() => {
+    setModalVisible(false);
 
-      lockRef.current = true;
-      lastCodeRef.current = gtin13;
-      setScanActive(false);
+    requestAnimationFrame(() => closeScreen());
+  }, [closeScreen]);
 
-      try {
-        const resp = await fetch(`${API_URL}/api/food/${gtin13}`);
-        const json = await resp.json();
-        console.log(
-          "[Scan] raw:",
-          res.data,
-          "type:",
-          res.type,
-          "→ gtin13:",
+  const handleScanAgain = useCallback(() => {
+    setModalVisible(false);
+    setResult(null);
+    setError(null);
+    lockRef.current = false;
+    lastCodeRef.current = null;
+    setScanActive(true);
+    setCameraKey((k) => k + 1);
+  }, []);
+
+  const onBarCodeScanned = useCallback(async (res: BarcodeScanningResult) => {
+    if (lockRef.current) return;
+
+    const gtin13 = toGTIN13(res.data);
+    if (!gtin13 || lastCodeRef.current === gtin13) return;
+
+    lockRef.current = true;
+    lastCodeRef.current = gtin13;
+    setScanActive(false);
+
+    try {
+      const resp = await fetch(
+        `${API_URL}/api/food/${encodeURIComponent(
           gtin13
-        );
-        console.log("[Scan] server response:", json);
-      } catch (e) {
-        console.log("[Scan] fetch error:", e);
-      } finally {
-        close();
+        )}?flag_default_serving=1`
+      );
+      const json = await resp.json();
+
+      if (!resp.ok) {
+        const msg =
+          json?.message ||
+          json?.error ||
+          `HTTP ${resp.status}: ${String(json).slice(0, 200)}`;
+        setError(msg);
+        setResult(null);
+        setModalVisible(true);
+        return;
       }
-    },
-    [close]
-  );
+
+      const normalized = normalizeFood(json);
+      if (!normalized) {
+        setError("No food item detected for this barcode.");
+        setResult(null);
+      } else {
+        setError(null);
+        setResult(normalized);
+      }
+      setModalVisible(true);
+    } catch (e: any) {
+      setError(e?.message || "Network error");
+      setResult(null);
+      setModalVisible(true);
+    }
+  }, []);
 
   if (!permission) {
     return (
@@ -104,7 +170,7 @@ export default function ScanScreen() {
           <Text style={styles.permText}>Allow Camera</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={close}
+          onPress={closeScreen}
           style={[styles.permBtn, styles.cancelBtn]}
         >
           <Text style={styles.cancelText}>Cancel</Text>
@@ -116,7 +182,11 @@ export default function ScanScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={close} style={styles.backBtn} hitSlop={12}>
+        <TouchableOpacity
+          onPress={handleCloseResult}
+          style={styles.backBtn}
+          hitSlop={12}
+        >
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>Scan barcode</Text>
@@ -149,6 +219,14 @@ export default function ScanScreen() {
       </View>
 
       <Text style={styles.hint}>Align the barcode within the frame</Text>
+
+      <BarcodeResultModal
+        visible={modalVisible}
+        onClose={handleCloseResult}
+        onScanAgain={handleScanAgain}
+        food={result}
+        error={error}
+      />
     </SafeAreaView>
   );
 }
