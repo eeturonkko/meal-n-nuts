@@ -17,6 +17,7 @@ type Props = {
   onClose: () => void;
   apiUrl: string;
   query: string;
+  onSelect?: (item: FoodListItem) => void;
 };
 
 type FoodSearchResponse = {
@@ -97,6 +98,7 @@ export default function FoodSearchModal({
   onClose,
   apiUrl,
   query,
+  onSelect
 }: Props) {
   const [items, setItems] = useState<FoodListItem[]>([]);
   const [page, setPage] = useState(0);
@@ -181,11 +183,21 @@ export default function FoodSearchModal({
             </View>
           ) : (
             <FlatList
+              keyboardShouldPersistTaps="handled" 
               data={items}
               keyExtractor={(it) => it.id}
               contentContainerStyle={{ paddingBottom: 12 }}
               ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-              renderItem={({ item }) => <FoodRow item={item} />}
+              renderItem={({ item }) => (
+                <FoodRow
+                  item={item}
+                  onPress={() => {
+                    console.log("Food tapped:", item?.name); // debuggaus
+                    onSelect?.(item);
+                    onClose();
+                  }}
+                />
+              )}
               onEndReachedThreshold={0.3}
               onEndReached={() => {
                 if (!loading && canLoadMore) fetchPage(query, page + 1);
