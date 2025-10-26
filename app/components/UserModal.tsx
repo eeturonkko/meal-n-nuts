@@ -23,7 +23,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { hide } from "expo-router/build/utils/splash";
 
 type Props = {
   visible: boolean;
@@ -69,7 +68,7 @@ export default function UserModal({ visible, onClose }: Props) {
   };
 
   useEffect(() => {
-    nutrientsHeight.value = withTiming(nutrientsExpanded ? 290 : 0, {
+    nutrientsHeight.value = withTiming(nutrientsExpanded ? 260 : 0, {
       duration: 400,
     });
     nutrientsOpacity.value = withTiming(nutrientsExpanded ? 1 : 0, {
@@ -192,95 +191,72 @@ export default function UserModal({ visible, onClose }: Props) {
                 </Animated.View>
               </Pressable>
 
-              <Animated.View style={[{ width: "100%" }, profileAnimatedStyle]}>
+              <Animated.View
+                style={[{ width: "100%" }, profileAnimatedStyle]}
+                pointerEvents={profileExpanded ? "auto" : "none"}
+              >
                 <View style={styles.inlineRow}>
                   <Text style={styles.inlineLabel}>Sukupuoli:</Text>
-                  <View
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderRadius: 10,
-                      backgroundColor: COLORS.white,
-                    }}
-                  >
+                  <View style={styles.genderPicker}>
                     <Picker
                       selectedValue={gender}
                       onValueChange={(itemValue) => setGender(itemValue)}
+                      style={{
+                        alignItems: "center",
+                        width: "100%",
+                        height: 50,
+                      }}
                     >
-                      <Picker.Item label="Mies" value="man" />
-                      <Picker.Item label="Nainen" value="woman" />
-                      <Picker.Item label="Muu" value="other" />
+                      <Picker.Item
+                        style={{ fontSize: 14 }}
+                        label="Mies"
+                        value="man"
+                      />
+                      <Picker.Item
+                        style={{ fontSize: 14 }}
+                        label="Nainen"
+                        value="woman"
+                      />
+                      <Picker.Item
+                        style={{ fontSize: 14 }}
+                        label="Muu"
+                        value="other"
+                      />
                     </Picker>
                   </View>
                 </View>
 
                 <View style={styles.inlineRow}>
                   <Text style={styles.inlineLabel}>Ikä:</Text>
-                  <View
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderRadius: 10,
-                      backgroundColor: COLORS.white,
-                    }}
-                  >
-                    <TextInput
-                      style={{
-                        height: 40,
-                        paddingHorizontal: 10,
-                      }}
-                      placeholder="Ikä"
-                      value={age}
-                      onChangeText={setAge}
-                      keyboardType="numeric"
-                    />
-                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ikä"
+                    value={age}
+                    onChangeText={setAge}
+                    keyboardType="numeric"
+                  />
                 </View>
 
                 <View style={styles.inlineRow}>
                   <Text style={styles.inlineLabel}>Paino (kg):</Text>
-                  <View
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderRadius: 10,
-                      backgroundColor: COLORS.white,
-                    }}
-                  >
-                    <TextInput
-                      style={{
-                        height: 40,
-                        paddingHorizontal: 10,
-                      }}
-                      placeholder="Paino (kg)"
-                      value={weight}
-                      onChangeText={setWeight}
-                      keyboardType="numeric"
-                    />
-                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Paino (kg)"
+                    value={weight}
+                    onChangeText={setWeight}
+                    keyboardType="numeric"
+                  />
                 </View>
 
                 <View style={styles.inlineRow}>
                   <Text style={styles.inlineLabel}>Pituus (cm):</Text>
-                  <View
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderRadius: 10,
-                      backgroundColor: COLORS.white,
-                    }}
-                  >
-                    <TextInput
-                      style={{
-                        height: 40,
-                        paddingHorizontal: 10,
-                      }}
-                      placeholder="Pituus (cm)"
-                      value={height}
-                      onChangeText={setHeight}
-                      keyboardType="numeric"
-                    />
-                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Pituus (cm)"
+                    value={height}
+                    onChangeText={setHeight}
+                    keyboardType="numeric"
+                  />
                 </View>
               </Animated.View>
 
@@ -303,8 +279,10 @@ export default function UserModal({ visible, onClose }: Props) {
 
               <Animated.View
                 style={[{ width: "100%" }, nutrientsAnimatedStyle]}
+                pointerEvents={nutrientsExpanded ? "auto" : "none"}
               >
-                <View style={{ width: "100%" }}>
+                <View style={styles.inlineRow}>
+                  <Text style={styles.inlineLabel}>Kalorit:</Text>
                   <TextInput
                     inputMode="numeric"
                     style={styles.input}
@@ -314,7 +292,8 @@ export default function UserModal({ visible, onClose }: Props) {
                   />
                 </View>
 
-                <View style={{ width: "100%" }}>
+                <View style={styles.inlineRow}>
+                  <Text style={styles.inlineLabel}>Proteiini:</Text>
                   <TextInput
                     inputMode="numeric"
                     style={styles.input}
@@ -322,7 +301,8 @@ export default function UserModal({ visible, onClose }: Props) {
                   />
                 </View>
 
-                <View style={{ width: "100%" }}>
+                <View style={styles.inlineRow}>
+                  <Text style={styles.inlineLabel}>Hiilihydraatti:</Text>
                   <TextInput
                     inputMode="numeric"
                     style={styles.input}
@@ -330,7 +310,8 @@ export default function UserModal({ visible, onClose }: Props) {
                   />
                 </View>
 
-                <View style={{ width: "100%" }}>
+                <View style={styles.inlineRow}>
+                  <Text style={styles.inlineLabel}>Rasva:</Text>
                   <TextInput
                     inputMode="numeric"
                     style={styles.input}
@@ -338,7 +319,8 @@ export default function UserModal({ visible, onClose }: Props) {
                   />
                 </View>
 
-                <View style={{ width: "100%" }}>
+                <View style={styles.inlineRow}>
+                  <Text style={styles.inlineLabel}>Vesi:</Text>
                   <TextInput
                     inputMode="numeric"
                     style={styles.input}
@@ -352,6 +334,7 @@ export default function UserModal({ visible, onClose }: Props) {
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-evenly",
+                    marginTop: 5,
                   }}
                 >
                   <TouchableOpacity onPress={Add}>
@@ -380,11 +363,14 @@ export default function UserModal({ visible, onClose }: Props) {
                 </Animated.View>
               </Pressable>
 
-              <Animated.View style={[{ width: "100%" }, goalsAnimatedStyle]}>
+              <Animated.View
+                style={[{ width: "100%" }, goalsAnimatedStyle]}
+                pointerEvents={goalsExpanded ? "auto" : "none"}
+              >
                 <View style={styles.inlineRow}>
                   <Text style={styles.inlineLabel}>Kalorit:</Text>
                   <TextInput
-                    style={styles.inlineInput}
+                    style={styles.input}
                     value={caloriesGoal}
                     onChangeText={setCaloriesGoal}
                     keyboardType="numeric"
@@ -395,7 +381,7 @@ export default function UserModal({ visible, onClose }: Props) {
                 <View style={styles.inlineRow}>
                   <Text style={styles.inlineLabel}>Proteiini:</Text>
                   <TextInput
-                    style={styles.inlineInput}
+                    style={styles.input}
                     value={proteinGoal}
                     onChangeText={setProteinGoal}
                     keyboardType="numeric"
@@ -406,7 +392,7 @@ export default function UserModal({ visible, onClose }: Props) {
                 <View style={styles.inlineRow}>
                   <Text style={styles.inlineLabel}>Hiilihydraatti:</Text>
                   <TextInput
-                    style={styles.inlineInput}
+                    style={styles.input}
                     value={carbsGoal}
                     onChangeText={setCarbsGoal}
                     keyboardType="numeric"
@@ -417,7 +403,7 @@ export default function UserModal({ visible, onClose }: Props) {
                 <View style={styles.inlineRow}>
                   <Text style={styles.inlineLabel}>Rasva:</Text>
                   <TextInput
-                    style={styles.inlineInput}
+                    style={styles.input}
                     value={fatGoal}
                     onChangeText={setFatGoal}
                     keyboardType="numeric"
@@ -428,7 +414,7 @@ export default function UserModal({ visible, onClose }: Props) {
                 <View style={styles.inlineRow}>
                   <Text style={styles.inlineLabel}>Vesi:</Text>
                   <TextInput
-                    style={styles.inlineInput}
+                    style={styles.input}
                     value={waterGoal}
                     onChangeText={setWaterGoal}
                     keyboardType="numeric"
@@ -507,7 +493,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingTop: 10,
   },
-  input: {
+  manualInput: {
     height: 40,
     margin: 5,
     borderWidth: 1,
@@ -537,6 +523,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 2,
+    width: "100%",
   },
   inlineLabel: {
     width: 110,
@@ -544,7 +531,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     paddingLeft: 8,
   },
-  inlineInput: {
+  input: {
     flex: 1,
     maxWidth: 110,
     height: 40,
@@ -553,9 +540,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: COLORS.white,
   },
-  radioItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 2,
+  genderPicker: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.white,
+    justifyContent: "center",
   },
 });
