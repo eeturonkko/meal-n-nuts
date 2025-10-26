@@ -1,13 +1,27 @@
 import { useUser } from "@clerk/clerk-expo";
 import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
 import React, { useCallback } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MealButton from "../components/MealButton";
+import MealGrid, { type MealConfig } from "../components/MealGrid";
 import { NutrientProgressCircle } from "../components/NutrientProgressCircle";
 import WaterModal from "../components/WaterModal";
 import COLORS from "../utils/constants";
+import { useMealActions } from "../utils/hooks";
+
+const ALL_MEALS: readonly MealConfig[] = [
+  {
+    id: "breakfast",
+    label: "Aamupala",
+    route: "breakfast",
+    action: "navigation",
+  },
+  { id: "lunch", label: "Lounas", route: "lunch", action: "navigation" },
+  { id: "dinner", label: "Päivällinen", route: "dinner", action: "navigation" },
+  { id: "evening", label: "Iltapala", route: "evening", action: "navigation" },
+  { id: "snack", label: "Snacks", route: "snack", action: "navigation" },
+  { id: "water", label: "Vesi", action: "modal", variant: "special" },
+] as const;
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -27,11 +41,13 @@ function todayISO() {
 }
 
 export default function HomeScreen() {
-  const router = useRouter();
   const { user, isLoaded } = useUser();
   const userId = isLoaded ? user?.id ?? "" : "";
 
   const [showWater, setShowWater] = React.useState(false);
+  const { handleMealPress } = useMealActions({
+    onWaterPress: () => setShowWater(true),
+  });
   const [totals, setTotals] = React.useState({
     calories: 0,
     protein: 0,
@@ -71,8 +87,6 @@ export default function HomeScreen() {
       fetchTotals();
     }, [fetchTotals])
   );
-
-  const openMeal = (meal: string) => router.push(`/screens/${meal}`);
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.safe}>
@@ -117,14 +131,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.mealsGrid}>
-          <MealButton label="Aamupala" onPress={() => openMeal("breakfast")} />
-          <MealButton label="Lounas" onPress={() => openMeal("lunch")} />
-          <MealButton label="Päivällinen" onPress={() => openMeal("dinner")} />
-          <MealButton label="Iltapala" onPress={() => openMeal("evening")} />
-          <MealButton label="Snacks" onPress={() => openMeal("snack")} />
-          <MealButton label="Vesi" onPress={() => setShowWater(true)} />
-        </View>
+        <MealGrid
+          meals={ALL_MEALS}
+          onMealPress={(mealId) => handleMealPress(mealId, ALL_MEALS)}
+        />
 
         <WaterModal
           visible={showWater}
@@ -171,10 +181,5 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
     marginBottom: 75,
     marginTop: 8,
-  },
-  mealsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
   },
 });

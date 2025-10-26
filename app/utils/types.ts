@@ -57,3 +57,7 @@ export type FatSecretRecipe = {
 export type RecipeGetResponseV2 =
   | { recipe?: FatSecretRecipe }
   | { recipes?: { recipe?: FatSecretRecipe | FatSecretRecipe[] } };
+
+export type UseMealActionsProps = {
+  onWaterPress: () => void;
+};
