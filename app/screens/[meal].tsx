@@ -1,3 +1,4 @@
+import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
@@ -7,21 +8,24 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FoodListItem } from "../components/FoodRow";
 import FoodSearchModal from "../components/FoodSearchModal";
-import { NutrientProgressCircle } from "../components/NutrientProgressCircle";
 import COLORS from "../utils/constants";
 
 type MealKey = "breakfast" | "lunch" | "dinner" | "evening" | "snack";
 
-type SelectedItem = {
+type FoodPick = {
   id: string;
   name: string;
-  unit: "g" | "ml";
+  serving?: string;
   amount: number;
+  unit: "g" | "ml";
+  caloriesPerUnit: number;
+  proteinPerUnit: number;
+  carbohydratePerUnit: number;
+  fatPerUnit: number;
 };
 
 const mealTitle = (meal?: string) =>
@@ -35,29 +39,32 @@ const mealTitle = (meal?: string) =>
     ? "Iltapala"
     : "Snacks";
 
+function guessUnit(serving?: string): "g" | "ml" {
+  const s = (serving || "").toLowerCase();
+  return s.includes("ml") || s.includes("dl") || s.includes("l") ? "ml" : "g";
+}
+
+function todayLocal() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
+
 export default function MealScreen() {
   const { meal } = useLocalSearchParams<{ meal: MealKey }>();
   const router = useRouter();
+  const { user, isLoaded } = useUser();
+  const userId = isLoaded ? user?.id ?? "" : "";
 
-  // mittarin placeholderi arvot
-  const progress = 350;
-  const goal = 700;
-
-  // haku ja sen modalin näkyvyys
   const [query, setQuery] = React.useState("");
   const [showSearch, setShowSearch] = React.useState(false);
 
-  // valitut tuotteet fake data sis
-  const [selected, setSelected] = React.useState<SelectedItem[]>([
-    { id: "1", name: "Kananrinta", unit: "g", amount: 160 },
-    { id: "2", name: "Banaani", unit: "g", amount: 60 },
-    { id: "3", name: "Mehukeitto", unit: "ml", amount: 200 },
-  ]);
+  const [selected, setSelected] = React.useState<FoodPick[]>([]);
 
-  // poistettavan rivin "kohde" (long-press)
-  const [deleteTarget, setDeleteTarget] = React.useState<SelectedItem | null>(null);
-
-  // määrän muutos
   const changeAmount = (id: string, delta: number) => {
     setSelected((prev) =>
       prev
@@ -68,15 +75,29 @@ export default function MealScreen() {
     );
   };
 
-  // yksikön arvaus annoksen perusteella ei ole kovin tarkka :D vaihdetaan kun keksii paremman
-  const guessUnit = (serving?: string): "g" | "ml" => {
-    const s = (serving || "").toLowerCase();
-    return s.includes("ml") || s.includes("dl") || s.includes("l") ? "ml" : "g";
-  };
-
-  // kun käyttäjä valitsee tuotteen hakumodaalista
-  const onSelectFood = (item: FoodListItem) => {
-    const unit: "g" | "ml" = guessUnit(item.serving);
+  const onSelectFood = (item: {
+    id: string;
+    name: string;
+    serving?: string;
+    metricAmount?: number;
+    metricUnit?: "g" | "ml" | "oz";
+    calories?: number;
+    protein?: number;
+    carbohydrate?: number;
+    fat?: number;
+  }) => {
+    const unit = guessUnit(item.serving);
+    const metricAmount = Number(item.metricAmount || 0);
+    const metricUnit = (item.metricUnit as any) || unit;
+    let grams = metricAmount;
+    if (metricUnit === "oz") grams = metricAmount * 28.35;
+    if (metricUnit === "ml") grams = metricAmount;
+    const perUnitFactor = grams > 0 ? 1 / grams : 0;
+    const caloriesPerUnit = Number(item.calories || 0) * perUnitFactor || 0;
+    const proteinPerUnit = Number(item.protein || 0) * perUnitFactor || 0;
+    const carbohydratePerUnit =
+      Number(item.carbohydrate || 0) * perUnitFactor || 0;
+    const fatPerUnit = Number(item.fat || 0) * perUnitFactor || 0;
     setSelected((prev) => {
       const exists = prev.find((x) => x.id === item.id);
       if (exists) {
@@ -84,30 +105,72 @@ export default function MealScreen() {
           x.id === item.id ? { ...x, amount: x.amount + 100 } : x
         );
       }
-      return [...prev, { id: item.id, name: item.name, unit, amount: 100 }];
+      return [
+        ...prev,
+        {
+          id: item.id,
+          name: item.name,
+          serving: item.serving,
+          amount: 100,
+          unit,
+          caloriesPerUnit,
+          proteinPerUnit,
+          carbohydratePerUnit,
+          fatPerUnit,
+        },
+      ];
     });
     setShowSearch(false);
   };
 
-  const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
+  const totalCalories = selected.reduce(
+    (sum, it) => sum + it.caloriesPerUnit * it.amount,
+    0
+  );
+  const totalProtein = selected.reduce(
+    (sum, it) => sum + it.proteinPerUnit * it.amount,
+    0
+  );
+  const totalCarb = selected.reduce(
+    (sum, it) => sum + it.carbohydratePerUnit * it.amount,
+    0
+  );
+  const totalFat = selected.reduce(
+    (sum, it) => sum + it.fatPerUnit * it.amount,
+    0
+  );
+
+  const onSave = async () => {
+    if (!userId || !meal || selected.length === 0) {
+      router.back();
+      return;
+    }
+    const items = selected.map((x) => ({
+      name: x.name,
+      amount: x.amount,
+      unit: x.unit,
+      calories: x.caloriesPerUnit * x.amount,
+      protein: x.proteinPerUnit * x.amount,
+      carbohydrate: x.carbohydratePerUnit * x.amount,
+      fat: x.fatPerUnit * x.amount,
+    }));
+    await fetch(`${API_URL}/api/diary/add-many`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        date: todayLocal(),
+        meal,
+        items,
+      }),
+    });
+    router.back();
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        {/* Otsikko */}
         <Text style={styles.title}>{mealTitle(meal)}</Text>
-
-        {/* Kalorimittari */}
-        <View style={styles.meterWrap}>
-          <NutrientProgressCircle
-            progressValue={1000}
-            goalValue={2500}
-            label="Kalorit"
-            size={140}
-          />
-        </View>
-
-        {/* Hakupalkki */}
         <View style={styles.searchRow}>
           <Ionicons name="search" size={18} color="#ffffffff" />
           <TextInput
@@ -124,31 +187,20 @@ export default function MealScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Otsikko listalle */}
         <Text style={styles.sectionHeader}>Valitut ruuat</Text>
 
-        {/* Valittujen ruokien lista */}
         <FlatList
           data={selected}
           keyExtractor={(it) => it.id}
-          contentContainerStyle={{ paddingBottom: 120 }} 
+          contentContainerStyle={{ paddingBottom: 120 }}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onLongPress={() => setDeleteTarget(item)}
-              delayLongPress={400}
-            >
+            <TouchableOpacity activeOpacity={0.9}>
               <View style={styles.row}>
-                {/* vasen “dot” */}
                 <View style={styles.dot} />
-
-                {/* nimi */}
                 <Text style={styles.rowName} numberOfLines={1}>
                   {item.name}
                 </Text>
-
-                {/* määräsäädin pillerinä */}
                 <View style={styles.amountPill}>
                   <TouchableOpacity
                     onPress={() => changeAmount(item.id, -10)}
@@ -156,11 +208,9 @@ export default function MealScreen() {
                   >
                     <Text style={styles.minus}>−</Text>
                   </TouchableOpacity>
-
                   <Text style={styles.amountText}>
                     {item.amount} {item.unit}
                   </Text>
-
                   <TouchableOpacity
                     onPress={() => changeAmount(item.id, +10)}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
@@ -173,7 +223,13 @@ export default function MealScreen() {
           )}
         />
 
-        {/* Footer-napit */}
+        <View style={styles.totals}>
+          <Text style={styles.totalText}>
+            {Math.round(totalCalories)} kcal • P {Math.round(totalProtein)}g • C{" "}
+            {Math.round(totalCarb)}g • F {Math.round(totalFat)}g
+          </Text>
+        </View>
+
         <View style={styles.footer}>
           <TouchableOpacity
             style={[styles.btn, styles.btnSecondary]}
@@ -184,20 +240,17 @@ export default function MealScreen() {
 
           <TouchableOpacity
             style={[styles.btn, styles.btnPrimary]}
-            onPress={() => {
-              // TODO: bakend
-              console.log("Tallenna:", { meal, items: selected });
-              router.back();
-            }}
+            onPress={onSave}
             disabled={selected.length === 0}
           >
             <Text style={styles.btnPrimaryText}>
-              {selected.length === 0 ? "Tallenna" : `Tallenna (${selected.length})`}
+              {selected.length === 0
+                ? "Tallenna"
+                : `Tallenna (${selected.length})`}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Hakumodaali */}
         <FoodSearchModal
           visible={showSearch}
           onClose={() => setShowSearch(false)}
@@ -205,37 +258,6 @@ export default function MealScreen() {
           query={query}
           onSelect={onSelectFood}
         />
-
-        {/* Poiston vahvistus */}
-        {deleteTarget && (
-          <View style={styles.deleteOverlay}>
-            <View style={styles.deleteCard}>
-              <Text style={styles.deleteTitle}>Poistetaanko?</Text>
-              <Text style={styles.deleteName}>{deleteTarget.name}</Text>
-
-              <View style={styles.deleteActions}>
-                <TouchableOpacity
-                  onPress={() => setDeleteTarget(null)}
-                  style={[styles.deleteBtn, { backgroundColor: "#9aa1aa" }]}
-                >
-                  <Text style={styles.deleteBtnText}>Peruuta</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setSelected((prev) =>
-                      prev.filter((x) => x.id !== deleteTarget.id)
-                    );
-                    setDeleteTarget(null);
-                  }}
-                  style={[styles.deleteBtn, { backgroundColor: "#d11" }]}
-                >
-                  <Text style={styles.deleteBtnText}>Poista</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
       </View>
     </SafeAreaView>
   );
@@ -244,7 +266,6 @@ export default function MealScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.primary },
   container: { flex: 1, padding: 16 },
-
   title: {
     textAlign: "center",
     color: COLORS.white,
@@ -252,16 +273,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 6,
   },
-
-  meterWrap: {
-    alignItems: "center",
-    marginBottom: 10,
-    backgroundColor: COLORS.white,
-    alignSelf: "center",
-    borderRadius: 120,
-    padding: 8,
-  },
-
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -283,14 +294,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
-
   sectionHeader: {
     color: COLORS.white,
     fontWeight: "700",
     marginBottom: 8,
     marginLeft: 4,
   },
-
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -312,7 +321,6 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontWeight: "700",
   },
-
   amountPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -327,8 +335,8 @@ const styles = StyleSheet.create({
   amountText: { color: "#0f172a", fontWeight: "700" },
   minus: { color: "#64748b", fontSize: 18, fontWeight: "900" },
   plus: { color: COLORS.primary, fontSize: 18, fontWeight: "900" },
-
-  // footer
+  totals: { alignItems: "center", marginBottom: 72, marginTop: 12 },
+  totalText: { color: COLORS.white, fontWeight: "700" },
   footer: {
     position: "absolute",
     left: 0,
@@ -363,50 +371,5 @@ const styles = StyleSheet.create({
   btnPrimaryText: {
     color: COLORS.primary,
     fontWeight: "800",
-  },
-
-  // delete modalin tyylit
-  deleteOverlay: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  deleteCard: {
-    backgroundColor: COLORS.white,
-    padding: 20,
-    borderRadius: 16,
-    width: "80%",
-    alignItems: "center",
-  },
-  deleteTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-    color: "#0f172a",
-  },
-  deleteName: {
-    fontSize: 16,
-    marginBottom: 20,
-    color: "#334155",
-  },
-  deleteActions: {
-    flexDirection: "row",
-    gap: 12,
-    width: "100%",
-  },
-  deleteBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  deleteBtnText: {
-    color: COLORS.white,
-    fontWeight: "700",
   },
 });

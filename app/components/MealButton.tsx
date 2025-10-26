@@ -9,17 +9,19 @@ type MealButtonProps = {
 export default function MealButton({ label, onPress }: MealButtonProps) {
   return (
     <TouchableOpacity onPress={onPress} style={styles.mealCard}>
-      <Text style={styles.mealLabel}>{label} <Text style={styles.plus}>+</Text></Text>
+      <Text style={styles.mealLabel}>
+        {label} <Text style={styles.plus}>+</Text>
+      </Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   mealCard: {
-    flexBasis: "31%",  
+    flexBasis: "31%",
     maxWidth: "31%",
     height: 92,
-    marginBottom: 12,   
+    marginBottom: 12,
     borderRadius: 18,
     backgroundColor: "#fff",
     alignItems: "center",
