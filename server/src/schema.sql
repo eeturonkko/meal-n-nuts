@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS meal_entries (
   protein REAL NOT NULL DEFAULT 0,
   carbohydrate REAL NOT NULL DEFAULT 0,
   fat REAL NOT NULL DEFAULT 0,
+  water REAL NOT NULL DEFAULT 0,
   source TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );

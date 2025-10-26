@@ -54,12 +54,14 @@ export default function HomeScreen() {
     carbohydrate: 0,
     fat: 0,
   });
+  const [waterTotal, setWaterTotal] = React.useState(0);
 
   const dailyGoal = {
     calories: 2500,
     protein: 150,
     carbohydrate: 300,
     fat: 70,
+    water: 2500,
   };
   const prettyDate = formatDMY(new Date());
 
@@ -80,12 +82,41 @@ export default function HomeScreen() {
       carbohydrate: Number(json?.totals?.carbohydrate || 0),
       fat: Number(json?.totals?.fat || 0),
     });
+    setWaterTotal(Number(json?.totals?.water || 0));
   }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
       fetchTotals();
     }, [fetchTotals])
+  );
+
+  const handleWaterSave = useCallback(
+    async (amount: number) => {
+      if (!userId || amount <= 0) return;
+
+      try {
+        const response = await fetch(`${API_URL}/api/diary/add-water`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            amount,
+            date: todayISO(),
+          }),
+        });
+
+        if (response.ok) {
+          // Refresh totals after adding water
+          fetchTotals();
+        }
+      } catch (error) {
+        console.error("Error saving water:", error);
+      }
+    },
+    [userId, fetchTotals]
   );
 
   return (
@@ -139,7 +170,9 @@ export default function HomeScreen() {
         <WaterModal
           visible={showWater}
           onClose={() => setShowWater(false)}
-          onSave={() => {}}
+          onSave={handleWaterSave}
+          dailyGoalMl={dailyGoal.water}
+          startAmountMl={waterTotal}
         />
       </View>
     </SafeAreaView>

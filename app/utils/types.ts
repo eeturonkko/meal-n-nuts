@@ -61,3 +61,32 @@ export type RecipeGetResponseV2 =
 export type UseMealActionsProps = {
   onWaterPress: () => void;
 };
+
+export type MealEntry = {
+  id: number;
+  meal: string;
+  name: string;
+  amount: number;
+  unit: string;
+  calories: number;
+  protein: number;
+  carbohydrate: number;
+  fat: number;
+  water: number;
+};
+
+export type DayEntry = {
+  date: string;
+  calories: number;
+  protein: number;
+  carbohydrate: number;
+  fat: number;
+  water: number;
+  entries?: MealEntry[];
+};
+
+export type DiaryApiResponse = {
+  from: string;
+  to: string;
+  rows: DayEntry[];
+};
