@@ -38,7 +38,7 @@ export default function TopSearchBar({
             <TextInput
               value={value}
               onChangeText={onChangeText}
-              placeholder="Hae resepti / ruoka"
+              placeholder="Hae ruokia tai aineksia..."
               placeholderTextColor="#7aa38f"
               returnKeyType="search"
               onSubmitEditing={onSearchPress}

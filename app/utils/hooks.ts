@@ -1,4 +1,6 @@
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { type MealConfig } from "../components/MealGrid";
 import {
   normalizeIngredients,
   normalizeTypes,
@@ -12,6 +14,7 @@ import type {
   ListItem,
   RecipeDetail,
   RecipeGetResponseV2,
+  UseMealActionsProps,
 } from "./types";
 
 /* -------- search -------- */
@@ -232,3 +235,23 @@ export function useFavorites(API_URL: string, userId?: string) {
     removeFavorite,
   };
 }
+
+export const useMealActions = ({ onWaterPress }: UseMealActionsProps) => {
+  const router = useRouter();
+
+  const handleMealPress = useCallback(
+    (mealId: string, meals: readonly MealConfig[]) => {
+      const meal = meals.find((m) => m.id === mealId);
+      if (!meal) return;
+
+      if (meal.action === "modal") {
+        onWaterPress();
+      } else if (meal.action === "navigation" && meal.route) {
+        router.push(`/screens/${meal.route}`);
+      }
+    },
+    [router, onWaterPress]
+  );
+
+  return { handleMealPress };
+};

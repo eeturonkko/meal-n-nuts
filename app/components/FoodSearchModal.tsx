@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -7,150 +7,155 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import COLORS from "../utils/constants";
-import FoodRow, { FoodListItem } from "./FoodRow";
+
+type FoodApiItem = {
+  food_id: string;
+  food_name: string;
+  brand_name?: string;
+  servings?: {
+    serving:
+      | {
+          serving_id: string;
+          serving_description: string;
+          metric_serving_amount?: string;
+          metric_serving_unit?: string;
+          calories?: string;
+          protein?: string;
+          carbohydrate?: string;
+          fat?: string;
+          is_default?: string;
+        }[]
+      | {
+          serving_id: string;
+          serving_description: string;
+          metric_serving_amount?: string;
+          metric_serving_unit?: string;
+          calories?: string;
+          protein?: string;
+          carbohydrate?: string;
+          fat?: string;
+          is_default?: string;
+        };
+  };
+};
 
 type Props = {
   visible: boolean;
   onClose: () => void;
   apiUrl: string;
   query: string;
-  onSelect?: (item: FoodListItem) => void;
+  onSelect: (item: {
+    id: string;
+    name: string;
+    serving?: string;
+    metricAmount?: number;
+    metricUnit?: "g" | "ml" | "oz";
+    calories?: number;
+    protein?: number;
+    carbohydrate?: number;
+    fat?: number;
+  }) => void;
 };
-
-type FoodSearchResponse = {
-  foods_search?: {
-    max_results?: string | number;
-    total_results?: string | number;
-    page_number?: string | number;
-    results?: { food?: any[] | any };
-  };
-};
-
-function pickBestFoodImage(f: any): string | undefined {
-  const imgs = f?.food_images?.food_image;
-  const arr = Array.isArray(imgs) ? imgs : imgs ? [imgs] : [];
-  if (arr.length === 0) return undefined;
-
-  const byUrl = (u?: string) => (typeof u === "string" ? u : undefined);
-  const get = (s: any) => byUrl(s?.image_url);
-
-  const exact400 = arr.find((s: any) => get(s)?.includes("400x400"))?.image_url;
-  if (exact400) return exact400;
-
-  const approx = arr.find((s: any) =>
-    /(\b384x384\b|\b360x360\b|\b512x512\b)/.test(get(s) || "")
-  )?.image_url;
-  if (approx) return approx;
-
-  return get(arr[0]);
-}
-
-function normalizeFoods(resp: FoodSearchResponse): {
-  items: FoodListItem[];
-  total: number;
-} {
-  const results = resp?.foods_search?.results?.food;
-  const list: any[] = Array.isArray(results)
-    ? results
-    : results
-    ? [results]
-    : [];
-  const items: FoodListItem[] = list.map((f) => {
-    let image = pickBestFoodImage(f);
-    const imgs = f?.food_images?.food_image;
-    if (imgs) {
-      if (Array.isArray(imgs) && imgs.length > 0) image = imgs[0]?.image_url;
-      else if (imgs?.image_url) image = imgs.image_url;
-    }
-    const servingsArr = f?.servings?.serving;
-    let servingDesc: string | undefined;
-    let calories: string | undefined;
-    if (Array.isArray(servingsArr)) {
-      const def =
-        servingsArr.find((s) => s.is_default === "1") || servingsArr[0];
-      if (def) {
-        servingDesc = def.serving_description || undefined;
-        calories = def.calories || undefined;
-      }
-    } else if (servingsArr) {
-      servingDesc = servingsArr.serving_description || undefined;
-      calories = servingsArr.calories || undefined;
-    }
-    return {
-      id: String(f.food_id),
-      name: String(f.food_name || ""),
-      brand: f.food_type === "Brand" ? String(f.brand_name || "") : undefined,
-      type: f.food_type,
-      image,
-      calories,
-      serving: servingDesc,
-    };
-  });
-  const total = Number(resp?.foods_search?.total_results ?? 0);
-  return { items, total };
-}
 
 export default function FoodSearchModal({
   visible,
   onClose,
   apiUrl,
-  query,
-  onSelect
+  query: initialQuery,
+  onSelect,
 }: Props) {
-  const [items, setItems] = useState<FoodListItem[]>([]);
-  const [page, setPage] = useState(0);
-  const [total, setTotal] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = React.useState(initialQuery);
+  const [loading, setLoading] = React.useState(false);
+  const [items, setItems] = React.useState<FoodApiItem[]>([]);
 
-  const canLoadMore = useMemo(
-    () => (total == null ? false : items.length < total),
-    [items.length, total]
-  );
+  React.useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
-  const fetchPage = useCallback(
-    async (q: string, p: number) => {
-      if (!q.trim()) {
-        setItems([]);
-        setTotal(0);
-        setPage(0);
-        return;
-      }
-      setLoading(true);
-      try {
-        const qs = new URLSearchParams({
-          query: q,
-          page: String(p),
-          max_results: "20",
-          include_food_images: "1",
-          flag_default_serving: "1",
-          nocache: String(Date.now()),
-        });
-        const resp = await fetch(`${apiUrl}/api/food/search?${qs.toString()}`, {
-          headers: { Accept: "application/json" },
-        });
-        const json = (await resp.json()) as FoodSearchResponse;
-        const { items: next, total } = normalizeFoods(json);
-        setItems((prev) => (p === 0 ? next : [...prev, ...next]));
-        setTotal(total);
-        setPage(p);
-      } catch {
-        if (p === 0) {
-          setItems([]);
-          setTotal(0);
+  const search = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const url = `${apiUrl}/api/food/search?query=${encodeURIComponent(
+        query || ""
+      )}&page=0&max_results=20&flag_default_serving=1`;
+      const resp = await fetch(url);
+      const json = await resp.json();
+      const arr =
+        json?.foods_search?.results?.food ||
+        json?.foods_search?.food ||
+        json?.results?.food ||
+        [];
+      setItems(arr);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl, query]);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    if ((query || "").trim().length === 0) return;
+    search();
+  }, [visible, search]);
+
+  const renderItem = ({ item }: { item: FoodApiItem }) => {
+    const servings = Array.isArray(item.servings?.serving)
+      ? item.servings?.serving
+      : item.servings?.serving
+      ? [item.servings?.serving]
+      : [];
+    const best =
+      servings.find((s) => String(s.is_default) === "1") ||
+      servings[0] ||
+      undefined;
+    const servingDesc = best?.serving_description || "";
+    const metricAmount = Number(best?.metric_serving_amount || 0) || undefined;
+    const metricUnit = (best?.metric_serving_unit as any) || undefined;
+    const calories = Number(best?.calories || 0) || undefined;
+    const protein = Number(best?.protein || 0) || undefined;
+    const carbohydrate = Number(best?.carbohydrate || 0) || undefined;
+    const fat = Number(best?.fat || 0) || undefined;
+    return (
+      <TouchableOpacity
+        onPress={() =>
+          onSelect({
+            id: item.food_id,
+            name: item.brand_name
+              ? `${item.brand_name} ${item.food_name}`
+              : item.food_name,
+            serving: servingDesc,
+            metricAmount,
+            metricUnit,
+            calories,
+            protein,
+            carbohydrate,
+            fat,
+          })
         }
-      } finally {
-        setLoading(false);
-      }
-    },
-    [apiUrl]
-  );
-
-  useEffect(() => {
-    if (visible) fetchPage(query, 0);
-  }, [visible, query, fetchPage]);
+        activeOpacity={0.85}
+        style={styles.card}
+      >
+        <View style={styles.dot} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.name} numberOfLines={1}>
+            {item.brand_name
+              ? `${item.brand_name} ${item.food_name}`
+              : item.food_name}
+          </Text>
+          {!!servingDesc && (
+            <Text style={styles.serving} numberOfLines={1}>
+              {servingDesc}
+            </Text>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={COLORS.white} />
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Modal
@@ -159,23 +164,33 @@ export default function FoodSearchModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalCard}>
+      <View style={styles.backdrop}>
+        <View style={styles.cardWrap}>
           <View style={styles.header}>
-            <Text style={styles.title}>Hakutulokset</Text>
+            <Text style={styles.title}>Hae ruoka</Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <Ionicons name="close" size={22} color={COLORS.white} />
             </Pressable>
           </View>
-
-          {!query.trim() ? (
-            <View style={styles.center}>
-              <Text style={styles.dim}>Syötä hakusana</Text>
-            </View>
-          ) : loading && page === 0 ? (
+          <View style={styles.searchRow}>
+            <Ionicons name="search" size={16} color="#7aa38f" />
+            <TextInput
+              style={styles.input}
+              placeholder="Hae ruokaa"
+              placeholderTextColor="#7aa38f"
+              value={query}
+              onChangeText={setQuery}
+              returnKeyType="search"
+              onSubmitEditing={search}
+            />
+            <TouchableOpacity onPress={search} style={styles.searchBtn}>
+              <Text style={styles.searchBtnText}>Hae</Text>
+            </TouchableOpacity>
+          </View>
+          {loading ? (
             <View style={styles.center}>
               <ActivityIndicator />
-              <Text style={styles.dim}>Haetaan…</Text>
+              <Text style={styles.dim}>Ladataan…</Text>
             </View>
           ) : items.length === 0 ? (
             <View style={styles.center}>
@@ -183,32 +198,11 @@ export default function FoodSearchModal({
             </View>
           ) : (
             <FlatList
-              keyboardShouldPersistTaps="handled" 
               data={items}
-              keyExtractor={(it) => it.id}
-              contentContainerStyle={{ paddingBottom: 12 }}
-              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-              renderItem={({ item }) => (
-                <FoodRow
-                  item={item}
-                  onPress={() => {
-                    console.log("Food tapped:", item?.name); // debuggaus
-                    onSelect?.(item);
-                    onClose();
-                  }}
-                />
-              )}
-              onEndReachedThreshold={0.3}
-              onEndReached={() => {
-                if (!loading && canLoadMore) fetchPage(query, page + 1);
-              }}
-              ListFooterComponent={
-                loading && page > 0 ? (
-                  <View style={{ paddingVertical: 14 }}>
-                    <ActivityIndicator />
-                  </View>
-                ) : null
-              }
+              keyExtractor={(it) => it.food_id}
+              renderItem={renderItem}
+              ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+              contentContainerStyle={{ paddingBottom: 16 }}
             />
           )}
         </View>
@@ -218,12 +212,8 @@ export default function FoodSearchModal({
 }
 
 const styles = StyleSheet.create({
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "#0009",
-    justifyContent: "flex-end",
-  },
-  modalCard: {
+  backdrop: { flex: 1, backgroundColor: "#0009", justifyContent: "flex-end" },
+  cardWrap: {
     maxHeight: "88%",
     backgroundColor: COLORS.bg,
     borderTopLeftRadius: 16,
@@ -239,10 +229,48 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: { color: COLORS.white, fontSize: 18, fontWeight: "800" },
+  searchRow: {
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  input: { flex: 1, color: "#0f172a", paddingVertical: 6 },
+  searchBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  searchBtnText: { color: COLORS.white, fontWeight: "700" },
   center: {
-    paddingVertical: 24,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 16,
   },
-  dim: { color: COLORS.muted, marginTop: 8 },
+  dim: { color: COLORS.muted, marginTop: 6 },
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.primary,
+  },
+  name: { color: COLORS.white, fontWeight: "800" },
+  serving: { color: COLORS.muted, marginTop: 2, fontSize: 12 },
 });

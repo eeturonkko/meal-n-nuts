@@ -5,6 +5,7 @@ import express from "express";
 import morgan from "morgan";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import diaryRouter from "./routes/diary.js";
 import foodRouter from "./routes/food.js";
 import recipesRouter from "./routes/recipes.js";
 
@@ -16,22 +17,13 @@ const PORT = Number(process.env.PORT || 4000);
 
 dotenv.config({ path: path.join(__dirname, ".env") });
 
-/* console.log("[env check]", {
-  id: process.env.FATSECRET_CLIENT_ID,
-  secret: process.env.FATSECRET_SECRET_ID,
-}); */
-
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
-app.disable("etag");
-app.use((_req, res, next) => {
-  res.set("Cache-Control", "no-store, max-age=0");
-  next();
-});
 
 app.use("/api/food", foodRouter);
 app.use("/api/recipes", recipesRouter);
+app.use("/api/diary", diaryRouter);
 app.use(express.static(path.join(__dirname, "./public")));
 
 app.get("/health", (_req, res) => {
