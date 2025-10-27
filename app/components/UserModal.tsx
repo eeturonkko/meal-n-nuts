@@ -1,28 +1,28 @@
 import { useUser } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  TextInput,
   Alert,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
   Keyboard,
+  KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
-import COLORS from "../utils/constants";
-import { SignOutButton } from "./SignOutButton";
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
+  useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
+import COLORS from "../utils/constants";
+import { SignOutButton } from "./SignOutButton";
 
 type Props = {
   visible: boolean;
@@ -80,7 +80,7 @@ export default function UserModal({ visible, onClose }: Props) {
   }, [nutrientsExpanded]);
 
   useEffect(() => {
-    profileHeight.value = withTiming(profileExpanded ? 195 : 0, {
+    profileHeight.value = withTiming(profileExpanded ? 450 : 0, {
       duration: 400,
     });
     profileOpacity.value = withTiming(profileExpanded ? 1 : 0, {
@@ -155,285 +155,331 @@ export default function UserModal({ visible, onClose }: Props) {
     ]);
   };
 
+  const handleSaveProfile = () => {
+    console.log("Saving profile data:", {
+      gender,
+      age,
+      weight,
+      height,
+    });
+    Alert.alert("Tallennettu", "Käyttäjätiedot tallennettu onnistuneesti!");
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.safe}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.card}>
-            <Text style={styles.title}>Käyttäjä</Text>
-            <Text style={styles.subtitle}>
-              Hei{" "}
-              <Text style={{ fontWeight: "700" }}>
-                {user?.emailAddresses?.[0]?.emailAddress ?? "Guest"}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.safe}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.card}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+          >
+            <ScrollView
+              style={styles.scrollContent}
+              contentContainerStyle={styles.scrollContentContainer}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={styles.title}>Käyttäjä</Text>
+              <Text style={styles.subtitle}>
+                Hei{" "}
+                <Text style={{ fontWeight: "700" }}>
+                  {user?.emailAddresses?.[0]?.emailAddress ?? "Guest"}
+                </Text>
               </Text>
-            </Text>
 
-            <View style={styles.inputSection}>
-              <Pressable
-                onPress={() => closeOtherDropdowns("profile")}
-                style={styles.dropdownBtn}
-              >
-                <Text style={{ color: COLORS.primary, fontWeight: "700" }}>
-                  {profileExpanded
-                    ? "Piilota käyttäjätiedot"
-                    : "Näytä käyttäjätiedot"}
-                </Text>
-
-                <Animated.View style={profileArrowStyle}>
-                  <Ionicons
-                    name="chevron-down"
-                    size={20}
-                    color={COLORS.primary}
-                  />
-                </Animated.View>
-              </Pressable>
-
-              <Animated.View
-                style={[{ width: "100%" }, profileAnimatedStyle]}
-                pointerEvents={profileExpanded ? "auto" : "none"}
-              >
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Sukupuoli:</Text>
-                  <View style={styles.genderPicker}>
-                    <Picker
-                      selectedValue={gender}
-                      onValueChange={(itemValue) => setGender(itemValue)}
-                      style={{
-                        alignItems: "center",
-                        width: "100%",
-                        height: 50,
-                      }}
-                    >
-                      <Picker.Item
-                        style={{ fontSize: 14 }}
-                        label="Mies"
-                        value="man"
-                      />
-                      <Picker.Item
-                        style={{ fontSize: 14 }}
-                        label="Nainen"
-                        value="woman"
-                      />
-                      <Picker.Item
-                        style={{ fontSize: 14 }}
-                        label="Muu"
-                        value="other"
-                      />
-                    </Picker>
-                  </View>
-                </View>
-
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Ikä:</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ikä"
-                    value={age}
-                    onChangeText={setAge}
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Paino (kg):</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Paino (kg)"
-                    value={weight}
-                    onChangeText={setWeight}
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Pituus (cm):</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Pituus (cm)"
-                    value={height}
-                    onChangeText={setHeight}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </Animated.View>
-
-              <Pressable
-                onPress={() => closeOtherDropdowns("nutrients")}
-                style={styles.dropdownBtn}
-              >
-                <Text style={{ color: COLORS.primary, fontWeight: "700" }}>
-                  Manuaalinen aterian lisäys
-                </Text>
-
-                <Animated.View style={nutrientArrowStyle}>
-                  <Ionicons
-                    name="chevron-down"
-                    size={20}
-                    color={COLORS.primary}
-                  />
-                </Animated.View>
-              </Pressable>
-
-              <Animated.View
-                style={[{ width: "100%" }, nutrientsAnimatedStyle]}
-                pointerEvents={nutrientsExpanded ? "auto" : "none"}
-              >
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Kalorit:</Text>
-                  <TextInput
-                    inputMode="numeric"
-                    style={styles.input}
-                    placeholder="Kalorit"
-                    value={value}
-                    onChangeText={setValue}
-                  />
-                </View>
-
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Proteiini:</Text>
-                  <TextInput
-                    inputMode="numeric"
-                    style={styles.input}
-                    placeholder="Proteiini"
-                  />
-                </View>
-
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Hiilihydraatti:</Text>
-                  <TextInput
-                    inputMode="numeric"
-                    style={styles.input}
-                    placeholder="Hiilihydraatti"
-                  />
-                </View>
-
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Rasva:</Text>
-                  <TextInput
-                    inputMode="numeric"
-                    style={styles.input}
-                    placeholder="Rasva"
-                  />
-                </View>
-
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Vesi:</Text>
-                  <TextInput
-                    inputMode="numeric"
-                    style={styles.input}
-                    placeholder="Vesi"
-                  />
-                </View>
-
-                <View
-                  style={{
-                    width: "100%",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-evenly",
-                    marginTop: 5,
-                  }}
+              <View style={styles.inputSection}>
+                <Pressable
+                  onPress={() => closeOtherDropdowns("profile")}
+                  style={styles.dropdownBtn}
                 >
-                  <TouchableOpacity onPress={Add}>
-                    <Text style={styles.addBtn}>Add</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={Reset}>
-                    <Text style={styles.addBtn}>Reset</Text>
-                  </TouchableOpacity>
-                </View>
-              </Animated.View>
+                  <Text style={{ color: COLORS.primary, fontWeight: "700" }}>
+                    {profileExpanded
+                      ? "Piilota käyttäjätiedot"
+                      : "Näytä käyttäjätiedot"}
+                  </Text>
 
-              <Pressable
-                onPress={() => closeOtherDropdowns("goals")}
-                style={styles.dropdownBtn}
-              >
-                <Text style={{ color: COLORS.primary, fontWeight: "700" }}>
-                  {goalsExpanded ? "Piilota tavoitteet" : "Näytä tavoitteet"}
-                </Text>
+                  <Animated.View style={profileArrowStyle}>
+                    <Ionicons
+                      name="chevron-down"
+                      size={20}
+                      color={COLORS.primary}
+                    />
+                  </Animated.View>
+                </Pressable>
 
-                <Animated.View style={goalsArrowStyle}>
-                  <Ionicons
-                    name="chevron-down"
-                    size={20}
-                    color={COLORS.primary}
-                  />
+                <Animated.View
+                  style={[{ width: "100%" }, profileAnimatedStyle]}
+                  pointerEvents={profileExpanded ? "auto" : "none"}
+                >
+                  <View style={styles.profileContent}>
+                    <View style={styles.genderSection}>
+                      <Text style={styles.sectionLabel}>Sukupuoli:</Text>
+                      <View style={styles.radioGroup}>
+                        <TouchableOpacity
+                          style={styles.radioOption}
+                          onPress={() => setGender("man")}
+                        >
+                          <View style={styles.radioCircle}>
+                            {gender === "man" && (
+                              <View style={styles.radioDot} />
+                            )}
+                          </View>
+                          <Text style={styles.radioLabel}>Mies</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.radioOption}
+                          onPress={() => setGender("woman")}
+                        >
+                          <View style={styles.radioCircle}>
+                            {gender === "woman" && (
+                              <View style={styles.radioDot} />
+                            )}
+                          </View>
+                          <Text style={styles.radioLabel}>Nainen</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.radioOption}
+                          onPress={() => setGender("other")}
+                        >
+                          <View style={styles.radioCircle}>
+                            {gender === "other" && (
+                              <View style={styles.radioDot} />
+                            )}
+                          </View>
+                          <Text style={styles.radioLabel}>Muu</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    <View style={styles.inputRow}>
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Ikä</Text>
+                        <TextInput
+                          style={styles.profileInput}
+                          placeholder="vuotta"
+                          value={age}
+                          onChangeText={setAge}
+                          keyboardType="numeric"
+                          placeholderTextColor="#9ca3af"
+                        />
+                      </View>
+
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Paino</Text>
+                        <TextInput
+                          style={styles.profileInput}
+                          placeholder="kg"
+                          value={weight}
+                          onChangeText={setWeight}
+                          keyboardType="numeric"
+                          placeholderTextColor="#9ca3af"
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputRow}>
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Pituus</Text>
+                        <TextInput
+                          style={styles.profileInput}
+                          placeholder="cm"
+                          value={height}
+                          onChangeText={setHeight}
+                          keyboardType="numeric"
+                          placeholderTextColor="#9ca3af"
+                        />
+                      </View>
+
+                      <View style={styles.inputGroup}></View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={handleSaveProfile}
+                    >
+                      <Text style={styles.addBtn}>Tallenna tiedot</Text>
+                    </TouchableOpacity>
+                  </View>
                 </Animated.View>
-              </Pressable>
 
-              <Animated.View
-                style={[{ width: "100%" }, goalsAnimatedStyle]}
-                pointerEvents={goalsExpanded ? "auto" : "none"}
-              >
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Kalorit:</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={caloriesGoal}
-                    onChangeText={setCaloriesGoal}
-                    keyboardType="numeric"
-                    placeholder="2500"
-                  />
-                </View>
+                <Pressable
+                  onPress={() => closeOtherDropdowns("nutrients")}
+                  style={styles.dropdownBtn}
+                >
+                  <Text style={{ color: COLORS.primary, fontWeight: "700" }}>
+                    Manuaalinen aterian lisäys
+                  </Text>
 
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Proteiini:</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={proteinGoal}
-                    onChangeText={setProteinGoal}
-                    keyboardType="numeric"
-                    placeholder="150"
-                  />
-                </View>
+                  <Animated.View style={nutrientArrowStyle}>
+                    <Ionicons
+                      name="chevron-down"
+                      size={20}
+                      color={COLORS.primary}
+                    />
+                  </Animated.View>
+                </Pressable>
 
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Hiilihydraatti:</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={carbsGoal}
-                    onChangeText={setCarbsGoal}
-                    keyboardType="numeric"
-                    placeholder="200"
-                  />
-                </View>
+                <Animated.View
+                  style={[{ width: "100%" }, nutrientsAnimatedStyle]}
+                  pointerEvents={nutrientsExpanded ? "auto" : "none"}
+                >
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Kalorit:</Text>
+                    <TextInput
+                      inputMode="numeric"
+                      style={styles.input}
+                      placeholder="Kalorit"
+                      value={value}
+                      onChangeText={setValue}
+                    />
+                  </View>
 
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Rasva:</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={fatGoal}
-                    onChangeText={setFatGoal}
-                    keyboardType="numeric"
-                    placeholder="70"
-                  />
-                </View>
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Proteiini:</Text>
+                    <TextInput
+                      inputMode="numeric"
+                      style={styles.input}
+                      placeholder="Proteiini"
+                    />
+                  </View>
 
-                <View style={styles.inlineRow}>
-                  <Text style={styles.inlineLabel}>Vesi:</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={waterGoal}
-                    onChangeText={setWaterGoal}
-                    keyboardType="numeric"
-                    placeholder="3000"
-                  />
-                </View>
-              </Animated.View>
-            </View>
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Hiilihydraatti:</Text>
+                    <TextInput
+                      inputMode="numeric"
+                      style={styles.input}
+                      placeholder="Hiilihydraatti"
+                    />
+                  </View>
 
-            <View style={styles.actions}>
-              <SignOutButton />
-            </View>
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Rasva:</Text>
+                    <TextInput
+                      inputMode="numeric"
+                      style={styles.input}
+                      placeholder="Rasva"
+                    />
+                  </View>
+
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Vesi:</Text>
+                    <TextInput
+                      inputMode="numeric"
+                      style={styles.input}
+                      placeholder="Vesi"
+                    />
+                  </View>
+
+                  <View
+                    style={{
+                      width: "100%",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-evenly",
+                      marginTop: 5,
+                    }}
+                  >
+                    <TouchableOpacity onPress={Add}>
+                      <Text style={styles.addBtn}>Add</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={Reset}>
+                      <Text style={styles.addBtn}>Reset</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Animated.View>
+
+                <Pressable
+                  onPress={() => closeOtherDropdowns("goals")}
+                  style={styles.dropdownBtn}
+                >
+                  <Text style={{ color: COLORS.primary, fontWeight: "700" }}>
+                    {goalsExpanded ? "Piilota tavoitteet" : "Näytä tavoitteet"}
+                  </Text>
+
+                  <Animated.View style={goalsArrowStyle}>
+                    <Ionicons
+                      name="chevron-down"
+                      size={20}
+                      color={COLORS.primary}
+                    />
+                  </Animated.View>
+                </Pressable>
+
+                <Animated.View
+                  style={[{ width: "100%" }, goalsAnimatedStyle]}
+                  pointerEvents={goalsExpanded ? "auto" : "none"}
+                >
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Kalorit:</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={caloriesGoal}
+                      onChangeText={setCaloriesGoal}
+                      keyboardType="numeric"
+                      placeholder="2500"
+                    />
+                  </View>
+
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Proteiini:</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={proteinGoal}
+                      onChangeText={setProteinGoal}
+                      keyboardType="numeric"
+                      placeholder="150"
+                    />
+                  </View>
+
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Hiilihydraatti:</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={carbsGoal}
+                      onChangeText={setCarbsGoal}
+                      keyboardType="numeric"
+                      placeholder="200"
+                    />
+                  </View>
+
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Rasva:</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={fatGoal}
+                      onChangeText={setFatGoal}
+                      keyboardType="numeric"
+                      placeholder="70"
+                    />
+                  </View>
+
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.inlineLabel}>Vesi:</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={waterGoal}
+                      onChangeText={setWaterGoal}
+                      keyboardType="numeric"
+                      placeholder="3000"
+                    />
+                  </View>
+                </Animated.View>
+              </View>
+
+              <View style={styles.actions}>
+                <SignOutButton />
+              </View>
+            </ScrollView>
 
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Text style={styles.closeText}>Sulje</Text>
             </TouchableOpacity>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
@@ -450,11 +496,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     width: "80%",
+    maxHeight: "85%",
     alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
+  },
+  scrollContent: {
+    width: "100%",
+  },
+  scrollContentContainer: {
+    alignItems: "center",
+    paddingBottom: 20,
   },
   title: {
     fontSize: 20,
@@ -547,5 +601,98 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: COLORS.white,
     justifyContent: "center",
+  },
+  profileContent: {
+    width: "100%",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  genderSection: {
+    marginBottom: 16,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.white,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  radioGroup: {
+    flexDirection: "column",
+    gap: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+    padding: 8,
+  },
+  radioOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    width: "100%",
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.white,
+  },
+  radioLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.white,
+  },
+  inputRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    gap: 12,
+  },
+  inputGroup: {
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.white,
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  profileInput: {
+    height: 44,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.white,
+    fontSize: 16,
+    textAlign: "center",
+  },
+  saveButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    marginTop: 16,
+    alignItems: "center",
+    alignSelf: "center",
+    minWidth: 150,
+  },
+  saveButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
