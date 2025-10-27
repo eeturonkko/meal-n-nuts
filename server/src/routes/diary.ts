@@ -121,11 +121,11 @@ router.post("/add-water", (req, res) => {
       "Vesi",
       amount,
       "ml",
-      0, // calories
-      0, // protein
-      0, // carbohydrate
-      0, // fat
-      amount, // water amount in ml
+      0,
+      0,
+      0,
+      0,
+      amount,
       "manual"
     );
 

@@ -87,7 +87,6 @@ async function callRecipesSearch(
     }
   }
 
-  // hard cache-buster for FatSecret’s edge
   url.searchParams.set("_", String(Date.now()));
 
   const upstream = url.toString();
@@ -100,7 +99,7 @@ async function callRecipesSearch(
       Accept: "application/json",
       "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
       Pragma: "no-cache",
-      "User-Agent": "mealnnuts-server/1.0 (+https://localhost)", // helps some CDNs
+      "User-Agent": "mealnnuts-server/1.0 (+https://localhost)",
     },
   });
 
@@ -130,7 +129,6 @@ router.get("/search", async (req, res) => {
     );
     const mustHaveImages = yes(req.query.must_have_images ?? true);
 
-    // pass through optional filters from client (e.g., calories.to)
     const extra: Record<string, string> = {};
     for (const k of Object.keys(req.query)) {
       if (k.includes(".") || k.startsWith("recipe_"))
